@@ -148,6 +148,14 @@ def resolve_embedding(
     return EmbeddingSpec(f"{provider}:{model}", provider, model, dim)  # type: ignore[arg-type]
 
 
+def spec_for_index(model_key: str, settings: dict[str, Any], dim: int) -> EmbeddingSpec:
+    """The embedding model an index was built with, from its stored settings."""
+    if model_key in REGISTRY:
+        return REGISTRY[model_key]
+    embedding = settings["embedding"]
+    return resolve_embedding(embedding["model"], embedding["provider"], dim)
+
+
 def first_row(matrix: Matrix) -> Matrix:
     row: Matrix = matrix[0]
     return row
