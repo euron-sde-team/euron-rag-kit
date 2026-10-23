@@ -1,0 +1,126 @@
+[project]
+name = "ragkit-server"
+version = "0.1.0"
+description = "Euron RAGKit API, worker and operator CLI: build, measure and serve retrieval pipelines."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "ENGAGESPHERE TECHNOLOGY PRIVATE LIMITED" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.161,<0.200",
+  "uvicorn[standard]>=0.54",
+  "pydantic>=2.14,<3",
+  "pydantic-settings>=2.16,<3",
+  "email-validator>=2.2",
+  "sqlalchemy[asyncio]>=2.1.6,<2.2",
+  "asyncpg>=0.32",
+  "alembic>=1.20",
+  "pgvector>=0.5.1",
+  "redis>=8.1",
+  "httpx>=0.28.1",
+  "structlog>=26.1",
+  "orjson>=3.13",
+  "prometheus-client>=0.26",
+  "boto3>=1.43",
+  "argon2-cffi>=25.1",
+  "pyjwt>=2.15",
+  "python-multipart>=0.0.32",
+  "typer>=0.27",
+  "numpy>=2.5",
+  "tiktoken>=0.14",
+  "fastembed>=0.9",
+  "pypdf>=6.21",
+  "python-docx>=1.2",
+  "beautifulsoup4>=4.15",
+]
+
+[project.scripts]
+ragkit-server = "ragkit_server.cli:app"
+
+[dependency-groups]
+dev = [
+  "pytest>=9.1",
+  "pytest-asyncio>=1.4",
+  "pytest-cov>=7.1",
+  "respx>=0.23",
+  "hypothesis>=6.170",
+  "ruff>=0.17",
+  "mypy>=2.4",
+  "boto3-stubs[s3,sqs,secretsmanager]>=1.43",
+  "types-beautifulsoup4",
+  "euron-ragkit",
+]
+samples = ["reportlab>=5.1"]
+
+[tool.uv.sources]
+euron-ragkit = { path = "../../sdk/python", editable = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragkit_server"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "S", "SIM", "C4", "RUF", "ASYNC", "PT", "RET", "PIE", "PERF", "TID"]
+ignore = [
+  "S311",   # random is used for jitter and sampling, never for secrets
+  "RUF012", # SQLAlchemy and Pydantic class attributes are not mutable defaults
+  "B008",   # FastAPI dependencies are declared as default arguments by design
+  "SIM905", # word lists read better as one split string than as long list literals
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "PLR2004", "E501"]
+"src/ragkit_server/migrations/**" = ["E501"]
+"src/ragkit_server/demo/corpus.py" = ["E501"]  # long lines are dataset content
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["ragkit_server"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["fastembed.*", "docx.*", "pgvector.*", "tiktoken.*"]
+ignore_missing_imports = true
+
+# Alembic revisions are frozen history written against SQLAlchemy's untyped op API.
+[[tool.mypy.overrides]]
+module = ["ragkit_server.migrations.*"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+# Integration tests need real services: `make test-integration` selects them with -m.
+addopts = "-ra --strict-markers -m 'not integration'"
+markers = [
+  "integration: needs Postgres (pgvector), Valkey and the AWS emulator (make test-integration)",
+]
+filterwarnings = ["ignore::DeprecationWarning:botocore.*"]
+
+[tool.coverage.run]
+source = ["ragkit_server"]
+branch = true
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "@overload"]
