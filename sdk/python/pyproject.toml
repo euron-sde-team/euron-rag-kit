@@ -1,0 +1,19 @@
+[project]
+name = "euron-ragkit"
+version = "0.1.0"
+description = "Python SDK and CLI for Euron RAGKit: ingest, query, answer and evaluate retrieval pipelines."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "ENGAGESPHERE TECHNOLOGY PRIVATE LIMITED" }]
+requires-python = ">=3.10"
+dependencies = ["httpx>=0.28.1", "pydantic>=2.10,<3", "typer>=0.15"]
+
+[project.scripts]
+ragkit = "ragkit.cli:app"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragkit"]
