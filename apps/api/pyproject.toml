@@ -43,6 +43,7 @@ dev = [
   "pytest-asyncio>=1.4",
   "pytest-cov>=7.1",
   "respx>=0.23",
+  "fakeredis>=2.40",
   "hypothesis>=6.170",
   "ruff>=0.17",
   "mypy>=2.4",

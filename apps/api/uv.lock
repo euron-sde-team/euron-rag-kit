@@ -370,6 +370,19 @@ requires-dist = [
 ]
 
 [[package]]
+name = "fakeredis"
+version = "2.40.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "redis" },
+    { name = "sortedcontainers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/61/d0/8cbd1339c2a606a0ceda74e1a181248d372bb2c66bc6cf9d954871839ff9/fakeredis-2.40.0.tar.gz", hash = "sha256:16eb05a3e97c37a033c73d1da7e885eb2aa47ba7604cc377144339efa2780a02", size = 332674, upload-time = "2026-10-14T12:46:01.851Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/e4/6919d3653d72c53d1fb22c97ceb6fa3664cad302994e90ee52279f7eb394/fakeredis-2.40.0-py3-none-any.whl", hash = "sha256:b155ef2442134372eb1cc5664cf5638ccbe0a6dde9d1942153708e2782f315c9", size = 204148, upload-time = "2026-10-14T12:46:00.014Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.161.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1231,6 +1244,7 @@ dependencies = [
 dev = [
     { name = "boto3-stubs", extra = ["s3", "secretsmanager", "sqs"] },
     { name = "euron-ragkit" },
+    { name = "fakeredis" },
     { name = "hypothesis" },
     { name = "mypy" },
     { name = "pytest" },
@@ -1277,6 +1291,7 @@ requires-dist = [
 dev = [
     { name = "boto3-stubs", extras = ["s3", "sqs", "secretsmanager"], specifier = ">=1.43" },
     { name = "euron-ragkit", editable = "../../sdk/python" },
+    { name = "fakeredis", specifier = ">=2.40" },
     { name = "hypothesis", specifier = ">=6.170" },
     { name = "mypy", specifier = ">=2.4" },
     { name = "pytest", specifier = ">=9.1" },
