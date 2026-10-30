@@ -13,6 +13,7 @@ import httpx
 import pytest
 from sqlalchemy import select, update
 
+from ragkit_server import worker as worker_module
 from ragkit_server.core.config import Settings
 from ragkit_server.integrations.queue import Job, SqsQueue
 from ragkit_server.models import Collection, Document, EvalRun, IndexEntry, Project, User
@@ -286,3 +287,33 @@ async def test_duplicate_deliveries_are_harmless(
 
 async def _empty(queue_url: str) -> bool:
     return _depth(queue_url) == (0, 0)
+
+
+async def test_shutdown_hands_unfinished_jobs_back_at_once(
+    sqs: Container,
+    target: tuple[Principal, Project, Collection],
+    aws: AwsResources,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, project, _ = target
+    _lose_messages(aws.queue_url)
+    assert isinstance(sqs.queue, SqsQueue)
+    worker = Worker(sqs, sqs.queue)
+    started = asyncio.Event()
+
+    async def stuck(job: Job, *, final_attempt: bool) -> Any:
+        started.set()
+        await asyncio.sleep(3600)
+
+    monkeypatch.setattr(worker.jobs, "handle", stuck)
+    monkeypatch.setattr(worker_module, "SHUTDOWN_GRACE_S", 0.5)
+    await sqs.queue.enqueue(Job.parse(project.id, uuid.uuid4()))
+    running = asyncio.create_task(worker.run())
+    await asyncio.wait_for(started.wait(), timeout=30)
+    assert _depth(aws.queue_url) == (0, 1)
+
+    worker.stop()
+    await asyncio.wait_for(running, timeout=30)
+    # Visible again right away, not after the five-minute visibility timeout.
+    assert _depth(aws.queue_url) == (1, 0)
+    _lose_messages(aws.queue_url)

@@ -6,8 +6,11 @@
   never handed to a second worker.
 - A failure returns the message to the queue with growing back-off; after three receives
   SQS moves it to the dead-letter queue and the row is marked failed.
-- SIGTERM stops receiving, lets in-flight jobs finish (up to a grace period), then exits:
-  a rolling deploy never loses work.
+- SIGTERM stops receiving and lets in-flight jobs finish for a grace period. Jobs still
+  running then are cancelled and their messages made visible again at once, so another
+  worker picks them up instead of waiting out the visibility timeout: a rolling deploy
+  never loses or stalls work. ECS waits stop_timeout (120 s) after SIGTERM, longer than
+  the grace period, so the hand-back always happens before the kill.
 - One worker at a time (elected through Redis) re-enqueues work stuck unfinished.
 """
 
@@ -29,7 +32,7 @@ from ragkit_server.services.ingestion import MAX_ATTEMPTS, IngestionService, Out
 
 log = get_logger("ragkit.worker")
 VISIBILITY_S = 300
-SHUTDOWN_GRACE_S = 120
+SHUTDOWN_GRACE_S = 90
 REAPER_INTERVAL_S = 60
 
 
@@ -40,7 +43,8 @@ class Worker:
         self.jobs = IngestionService(container)
         self.concurrency = container.settings.worker_concurrency
         self.stopping = asyncio.Event()
-        self.inflight: set[asyncio.Task[None]] = set()
+        # Running jobs and the receipt of the message each one came from.
+        self.inflight: dict[asyncio.Task[None], str] = {}
 
     def stop(self) -> None:
         if not self.stopping.is_set():
@@ -64,11 +68,24 @@ class Worker:
                 continue
             for item in received:
                 task = asyncio.create_task(self._handle(item))
-                self.inflight.add(task)
-                task.add_done_callback(self.inflight.discard)
+                self.inflight[task] = item.receipt
+                task.add_done_callback(lambda done: self.inflight.pop(done, None))
         if self.inflight:
-            await asyncio.wait(self.inflight, timeout=SHUTDOWN_GRACE_S)
+            _, unfinished = await asyncio.wait(set(self.inflight), timeout=SHUTDOWN_GRACE_S)
+            await self._hand_back(unfinished)
         reaper.cancel()
+
+    async def _hand_back(self, tasks: set[asyncio.Task[None]]) -> None:
+        """Cancel jobs that outlived the grace period and release their messages now."""
+        receipts = [self.inflight[task] for task in tasks if task in self.inflight]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        for receipt in receipts:
+            with contextlib.suppress(Exception):
+                await self.queue.extend(receipt, 0)
+        if receipts:
+            log.warning("jobs_handed_back", count=len(receipts))
 
     async def _handle(self, item: ReceivedJob) -> None:
         heartbeat = asyncio.create_task(self._heartbeat(item.receipt))
