@@ -49,7 +49,12 @@ class AnalyticsService:
             zero_hit_rate=round(int(totals.zero_hit) / served, 4) if served else 0.0,
             cache_hit_rate=round(int(totals.cached) / served, 4) if served else 0.0,
             top_queries=[
-                TopQueryOut(query=row.query, count=int(row.times), collection=row.collection)
+                TopQueryOut(
+                    query=row.query,
+                    count=int(row.times),
+                    collection=row.collection,
+                    collection_slug=row.collection_slug,
+                )
                 for row in top
             ],
             by_collection=[

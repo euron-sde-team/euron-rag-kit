@@ -66,6 +66,7 @@ class QueryLogRepository(Repository):
                 func.min(QueryLog.query_text).label("query"),
                 func.count().label("times"),
                 func.min(Collection.name).label("collection"),
+                func.min(Collection.slug).label("collection_slug"),
             )
             .join(Collection, Collection.id == QueryLog.collection_id)
             .where(*conditions, QueryLog.query_text.is_not(None))

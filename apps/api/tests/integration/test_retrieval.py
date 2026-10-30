@@ -296,6 +296,7 @@ async def test_served_queries_feed_the_analytics(
     assert analytics["cache_hit_rate"] > 0
     top = {q["query"]: q["count"] for q in analytics["top_queries"]}
     assert top["signature verification"] == 3
+    assert {q["collection_slug"] for q in analytics["top_queries"]} == {"facts"}
     scoped = (
         await client.get(
             f"/api/v1/projects/{owner.project}/analytics",

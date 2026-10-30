@@ -18,6 +18,7 @@ class TopQueryOut(ApiModel):
     query: str
     count: int
     collection: str
+    collection_slug: str
 
 
 class AnalyticsOut(ApiModel):
