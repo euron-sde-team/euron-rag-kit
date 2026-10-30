@@ -5,6 +5,7 @@ import { CircleCheck, CircleX, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorNotice, Skeleton } from "@/components/ui/feedback";
 import { cn } from "@/lib/cn";
+import { metricLabel } from "@/lib/metrics";
 import { useGate } from "@/lib/queries";
 
 /** The CI verdict for a finished run: the dataset's floors and the allowed drop. */
@@ -50,6 +51,7 @@ export function GatePanel({ project, runId }: { project: string; runId: string }
                     <CircleX className="text-danger mt-0.5 size-4 shrink-0" aria-label="Failed" />
                   )}
                   <span className={check.passed ? "text-muted-foreground" : ""}>
+                    <span className="text-foreground font-medium">{metricLabel(check.metric)}</span>{" "}
                     {check.message}
                   </span>
                 </li>
