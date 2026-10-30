@@ -125,7 +125,9 @@ async def export_items(
         for item in items
     ]
     return PlainTextResponse(
-        "\n".join(lines) + ("\n" if lines else ""), media_type="application/x-ndjson"
+        "\n".join(lines) + ("\n" if lines else ""),
+        media_type="application/x-ndjson",
+        headers={"content-disposition": f'attachment; filename="{dataset.slug}.jsonl"'},
     )
 
 

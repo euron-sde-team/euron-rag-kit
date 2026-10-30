@@ -186,6 +186,7 @@ async def test_datasets_export_and_import_as_jsonl(
     project = f"/api/v1/projects/{corpus.project}"
     exported = await client.get(f"{project}/datasets/{smoke}/export", headers=corpus.owner.headers)
     assert exported.headers["content-type"].startswith("application/x-ndjson")
+    assert 'filename="smoke.jsonl"' in exported.headers["content-disposition"]
     items = [json.loads(line) for line in exported.text.splitlines()]
     assert len(items) == 8
     copy = await client.post(
