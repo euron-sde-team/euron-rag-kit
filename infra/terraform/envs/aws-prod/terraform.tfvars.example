@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars and fill in. Never commit terraform.tfvars.
+name_prefix     = "ragkit-prod"
+domain          = "ragkit.example.com"
+route53_zone_id = "Z0000000000000000000"
+alarm_email     = "oncall@example.com"
+
+# Optional: answer with a hosted model instead of offline extractive answers.
+# llm_provider           = "openai"
+# llm_model              = "gpt-4.1-mini"
+# llm_api_key_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:ragkit/llm:LLM_API_KEY::"
