@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+**/.next/
+**/node_modules/
+**/playwright-report/
+**/test-results/
+apps/api/
+sdk/
+docs/api/openapi.json
+samples/
+# Prose and READMEs are wrapped by hand; their HTML blocks must stay exactly as written.
+*.md

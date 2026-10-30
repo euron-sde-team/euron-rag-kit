@@ -1,0 +1,26 @@
+{
+  "name": "euron-rag-kit",
+  "private": true,
+  "description": "Euron RAGKit: build, measure and serve retrieval pipelines.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @ragkit/web dev",
+    "lint": "pnpm -r --parallel lint",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "pnpm --filter @ragkit/web test",
+    "build": "pnpm --filter @ragkit/web build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "e2e": "pnpm --filter @ragkit/e2e test",
+    "qa": "pnpm --filter @ragkit/e2e qa",
+    "capture": "pnpm --filter @ragkit/e2e capture"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "0.8.1"
+  }
+}
