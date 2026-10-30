@@ -79,7 +79,8 @@ def run_gate(
             continue
         change = value - reference
         passed = change + EPSILON >= -drop
-        message = f"{change:+.3f} vs baseline ({'within' if passed else 'beyond'} -{drop:.3f})"
+        verdict = "within" if passed else "beyond"
+        message = f"{change:+.3f} against the baseline, {verdict} the allowed drop of {drop:.3f}"
         checks.append(GateCheck(metric, "max_drop", drop, value, reference, passed, message))
     return all(check.passed for check in checks), checks
 
