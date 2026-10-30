@@ -50,6 +50,19 @@ from ragkit_server.services.pipelines import chunking_options, cleaning_options,
 log = get_logger("ragkit.ingestion")
 EMBED_BATCH = 64
 MAX_ATTEMPTS = 3
+# A claim younger than this belongs to a worker that is still on the job: a second delivery
+# of the same message (SQS is at-least-once) is dropped instead of doing the work twice. It
+# is shorter than the queue's visibility timeout, so the message of a worker that died is
+# redelivered after the claim has aged and is then taken over.
+DUPLICATE_WINDOW = timedelta(seconds=120)
+
+
+def _claimed_recently(status: str, updated_at: datetime | None) -> bool:
+    return (
+        status == JobStatus.PROCESSING
+        and updated_at is not None
+        and updated_at > datetime.now(UTC) - DUPLICATE_WINDOW
+    )
 
 
 class Outcome(StrEnum):
@@ -79,6 +92,9 @@ class IngestionService:
         async with self.c.db.session() as session:
             document = await DocumentRepository(session).get_for_update(document_id)
             if document is None or document.status == JobStatus.READY:
+                return Outcome.DONE
+            if _claimed_recently(document.status, document.updated_at):
+                log.info("duplicate_delivery_dropped", kind="parse", document_id=str(document_id))
                 return Outcome.DONE
             document.status = JobStatus.PROCESSING
             document.attempts += 1
@@ -221,6 +237,9 @@ class IngestionService:
             pipelines = PipelineRepository(session)
             entry = await pipelines.entry_for_update(index_id, document_id)
             if entry is None or entry.status == JobStatus.READY:
+                return Outcome.DONE
+            if _claimed_recently(entry.status, entry.updated_at):
+                log.info("duplicate_delivery_dropped", kind="index", document_id=str(document_id))
                 return Outcome.DONE
             index = await pipelines.index(index_id)
             document = await DocumentRepository(session).get_for_update(document_id)
