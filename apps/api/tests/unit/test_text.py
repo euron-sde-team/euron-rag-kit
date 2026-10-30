@@ -25,6 +25,14 @@ def test_content_terms_stem_and_drop_stopwords() -> None:
     assert content_terms("The webhooks are retrying events") == ["webhook", "retry", "event"]
 
 
+def test_possessives_fold_into_their_noun() -> None:
+    assert content_terms("the customer's statement") == ["customer", "statement"]
+    assert content_terms("the customer\N{RIGHT SINGLE QUOTATION MARK}s bank") == [
+        "customer",
+        "bank",
+    ]
+
+
 def test_numbers_are_normalised() -> None:
     text = "Fees are 2.90% + $0.30, capped at $1,200.50; respond within 15 minutes."
     assert numbers(text) == ["2.9", "0.3", "1200.5", "15"]

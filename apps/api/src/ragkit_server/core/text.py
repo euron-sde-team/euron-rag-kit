@@ -80,8 +80,14 @@ def _stem(word: str) -> str:
 
 
 def content_terms(text: str) -> list[str]:
-    """Lowercased, stemmed words without stopwords, in order (duplicates kept)."""
-    return [_stem(w) for w in _WORD.findall(text.lower()) if w not in STOPWORDS and len(w) > 1]
+    """Lowercased, stemmed words without stopwords, in order (duplicates kept).
+
+    Possessives fold into their noun ("the customer's statement" has the word "customer"),
+    whichever apostrophe the text uses.
+    """
+    lowered = text.lower().replace("\N{RIGHT SINGLE QUOTATION MARK}", "'")
+    words = (w[:-2] if w.endswith("'s") else w for w in _WORD.findall(lowered))
+    return [_stem(w) for w in words if w not in STOPWORDS and len(w) > 1]
 
 
 def truncate(text: str, limit: int) -> str:

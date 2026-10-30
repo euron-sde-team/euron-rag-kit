@@ -97,3 +97,48 @@ def test_phrases_and_table_values_win_over_scattered_words() -> None:
     )
     assert "Mode: Live mode; Requests per second: 100 [1]" in answer.text.splitlines()[0]
     assert "Search endpoints" not in answer.text
+
+
+def test_how_long_asks_for_a_duration_not_for_the_word_long() -> None:
+    passage = (
+        "Refunds\n\nYou can issue several partial refunds as long as their total does not exceed "
+        "the charge. Refunds usually take 5 to 10 business days to appear on the customer's "
+        "statement."
+    )
+    answer = extractive_answer(
+        "How long do refunds take to reach the customer?", [hit(passage, n=1)]
+    )
+    assert answer.text.startswith("Refunds usually take 5 to 10 business days")
+
+
+def test_codes_and_the_retrievers_ranking_pick_the_source() -> None:
+    limits = hit("Requests over the limit fail with HTTP 429.", n=1, title="Rate limits", fused=0.9)
+    keys = hit(
+        "A retry within 24 hours returns the saved response.",
+        n=2,
+        title="Idempotency keys",
+        fused=0.1,
+    )
+    answer = extractive_answer("How should I retry a request that returned 429?", [limits, keys])
+    assert answer.text.startswith("Requests over the limit fail with HTTP 429. [1]")
+
+
+def test_one_generic_title_word_does_not_name_a_document() -> None:
+    limits = hit("Requests over the limit fail with HTTP 429.", n=1, title="Rate limits", fused=0.9)
+    idempotency = hit(
+        "Retried requests with the same key return the saved response.",
+        n=2,
+        title="Idempotent requests",
+        fused=0.2,
+    )
+    answer = extractive_answer("Why do requests fail with 429?", [limits, idempotency])
+    assert answer.text.startswith("Requests over the limit fail with HTTP 429. [1]")
+
+
+def test_sentences_about_the_page_itself_do_not_answer() -> None:
+    passage = (
+        "Payouts\n\nThis page explains when payouts arrive and what to do when one fails. "
+        "A failed payout returns the funds to your balance within 2 to 5 business days."
+    )
+    answer = extractive_answer("What happens when a payout fails?", [hit(passage, n=1)])
+    assert answer.text.startswith("A failed payout returns the funds")

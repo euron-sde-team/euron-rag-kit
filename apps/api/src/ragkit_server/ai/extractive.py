@@ -9,7 +9,11 @@ candidates). Each unit is scored against the question by:
 - meaning: cosine similarity between the unit and the question, when embeddings are given,
 - phrases: a bonus for every pair of consecutive question words the unit repeats in order,
   so "live mode" beats a sentence that has "live" and "mode" apart,
-- small boosts for numbers when the question asks for one, and for higher-ranked sources.
+- the retrieval stage's own judgment: a boost in proportion to the source's score against
+  the best source, so a sentence from the passage the reranker put first beats a sentence
+  with the same words from a passage it ranked far lower,
+- small boosts for numbers when the question asks for one; a penalty for sentences that
+  describe the document instead of saying something ("This page explains...").
 
 The best units are kept, list items travel with their siblings, and everything is put back
 in document order and cited. When nothing covers the question well enough, it says so and
@@ -46,9 +50,23 @@ _LOW = frozenset({"lowest", "least", "fewest", "smallest", "worst", "minimum"})
 _NUMBER = re.compile(r"[-+]?\d[\d,]*\.?\d*")
 _LIST_PREFIX = ("\N{BULLET}", "- ", "* ")
 _TERMINAL = (".", "!", "?", ":", ";", ")", '"', "'")
+# "How long", "how often": the second word asks for a kind of answer; it is not a word to
+# look for ("as long as" says nothing about duration).
+_QUESTION_FORM = re.compile(r"\bhow (long|often|soon|fast|quickly|far)\b", re.IGNORECASE)
+# Sentences about the document itself: "This page explains...", "This Service Level
+# Agreement (SLA) describes...". They match a question's words without answering it.
+_META = re.compile(
+    r"^(this|the following|in this)\b[^.]{0,80}?\b(describes|explains|covers|outlines|lists|"
+    r"shows|summari[sz]es|walks you)\b",
+    re.IGNORECASE,
+)
 NOT_FOUND = "I could not find a clear answer to that in the retrieved passages."
 PHRASE_BONUS = 0.04
 PHRASE_CAP = 0.16
+RANK_PRIOR = 0.3
+# Numbers and codes in a question ("429", "ACME-4011") are the most specific words in it.
+IDENTIFIER_WEIGHT = 1.5
+META_PENALTY = 0.6
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,6 +170,7 @@ def extractive_answer(
 
     superlative_words = {w.lower() for w in _SUPERLATIVE.findall(question)}
     query_terms -= superlative_words
+    query_terms -= set(content_terms(" ".join(_QUESTION_FORM.findall(question))))
     if not query_terms:
         return _not_found(sources)
 
@@ -162,7 +181,12 @@ def extractive_answer(
     # Words that name a document ("the Globex agreement") pick the document; the remaining
     # words say what to find in it, so they carry most of the weight.
     title_words = {term for unit in units for term in unit.title_terms}
-    weight = {t: idf.get(t, default_idf) * (0.4 if t in title_words else 1.0) for t in query_terms}
+    weight = {
+        t: idf.get(t, default_idf)
+        * (0.4 if t in title_words else 1.0)
+        * (IDENTIFIER_WEIGHT if _HAS_NUMBER.search(t) else 1.0)
+        for t in query_terms
+    }
     query_weight = sum(weight.values()) or 1.0
     wants_number = bool(_NUMERIC_INTENT.search(question))
 
@@ -180,12 +204,28 @@ def extractive_answer(
     named = {t for t in query_terms if t in title_words}
     targeted: set[object] = set()
     if named:
-        hits: dict[object, float] = {}
-        for unit in units:
-            hits[unit.source.document_id] = sum(weight[t] for t in named & unit.title_terms)
-        best_hit = max(hits.values())
-        if best_hit >= sum(weight[t] for t in named) * 0.99:
+        titles = {unit.source.document_id: unit.title_terms for unit in units}
+
+        def names(title: frozenset[str]) -> bool:
+            # One shared generic word ("requests" in "Idempotent requests") does not name a
+            # document; its whole title, two of its words or a number in it ("4.2") does.
+            matched = named & title
+            return bool(matched) and (
+                matched == title or len(matched) >= 2 or any(_HAS_NUMBER.search(t) for t in matched)
+            )
+
+        hits = {
+            doc: sum(weight[t] for t in named & title)
+            for doc, title in titles.items()
+            if names(title)
+        }
+        best_hit = max(hits.values(), default=0.0)
+        if hits and best_hit >= sum(weight[t] for t in named) * 0.99:
             targeted = {doc for doc, hit in hits.items() if hit >= best_hit}
+
+    # Scores of different stages are not comparable across requests, but within one request
+    # the ratio to the best source says how much more the retriever trusted it.
+    best_source = max((unit.source.score for unit in units), default=0.0)
 
     for index, unit in enumerate(units):
         covered = coverage(unit.terms)
@@ -198,10 +238,14 @@ def extractive_answer(
         score += min(PHRASE_CAP, PHRASE_BONUS * len(unit.bigrams & query_bigrams))
         if wants_number and _HAS_NUMBER.search(unit.text):
             score += 0.1
+        if best_source > 0:
+            score += RANK_PRIOR * max(0.0, unit.source.score) / best_source
         if unit.source.n:
             score += 0.05 / unit.source.n
         if len(unit.text.split()) > 70:
             score *= 0.85
+        if _META.match(unit.text):
+            score *= META_PENALTY
         unit.score = score
 
     if superlative_words:
