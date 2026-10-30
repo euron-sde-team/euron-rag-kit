@@ -47,6 +47,9 @@ function VersionRow({
             {version.name}
           </Link>
           {version.active ? <Badge tone="success">Serving</Badge> : null}
+          <span className="text-subtle text-xs whitespace-nowrap">
+            {formatRelative(version.created_at)}
+          </span>
         </div>
         {version.description ? (
           <p className="text-muted-foreground mt-1 line-clamp-2 text-[13px]">
@@ -85,10 +88,7 @@ function VersionRow({
           )}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-2 md:w-56 md:justify-end">
-        <span className="text-subtle mr-auto text-xs md:mr-0">
-          {formatRelative(version.created_at)}
-        </span>
+      <div className="flex shrink-0 items-center gap-2 md:w-48 md:justify-end">
         <Button asChild variant="ghost" size="sm">
           <Link
             href={`/p/${project}/playground?collection=${collection}&version=${version.version}`}
