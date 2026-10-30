@@ -361,9 +361,11 @@ async def _seed(container: Container, samples: Path, password: str, seeded: Seed
     corpus = samples / "corpus"
     async with container.db.session() as session:
         documents = DocumentService(container, session)
-        for path in sorted((corpus / "developer-docs").iterdir()):
-            if path.name not in DOC_METADATA:
-                continue
+        # In the order of DOC_METADATA: guides first, then the HTML page, the price list,
+        # the release notes, the PDF and the Word file, so the library (newest first) opens
+        # on the formats that show what the parsers do.
+        for name in DOC_METADATA:
+            path = corpus / "developer-docs" / name
             await documents.upload(
                 project,
                 docs,
