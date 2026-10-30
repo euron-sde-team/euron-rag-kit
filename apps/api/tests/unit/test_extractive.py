@@ -77,3 +77,20 @@ def test_best_quote_prefers_the_supporting_sentence() -> None:
     assert best_quote("payouts arrive after two days", passage) == (
         "Payouts arrive two days after capture."
     )
+
+
+def test_phrases_and_table_values_win_over_scattered_words() -> None:
+    table = hit(
+        "Default limits\n\nMode: Live mode; Requests per second: 100\n\n"
+        "Mode: Test mode; Requests per second: 25\n\nMode: Search endpoints; Requests per second: 20",
+        n=1,
+        title="Rate limits",
+    )
+    load = hit(
+        "Load testing\n\nLoad test in test mode instead, keeping in mind that test mode allows 25 "
+        "requests per second.",
+        n=2,
+        title="Rate limits",
+    )
+    answer = extractive_answer("How many requests per second are allowed in live mode?", [table, load])
+    assert answer.text.startswith("Mode: Live mode; Requests per second: 100 [1]")

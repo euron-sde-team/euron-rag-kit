@@ -7,6 +7,8 @@ candidates). Each unit is scored against the question by:
 - lexical coverage: IDF-weighted share of the question's terms the unit contains, with
   half credit for terms in its heading and a quarter for terms in its document's title,
 - meaning: cosine similarity between the unit and the question, when embeddings are given,
+- phrases: a bonus for every pair of consecutive question words the unit repeats in order,
+  so "live mode" beats a sentence that has "live" and "mode" apart,
 - small boosts for numbers when the question asks for one, and for higher-ranked sources.
 
 The best units are kept, list items travel with their siblings, and everything is put back
@@ -21,6 +23,7 @@ import re
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 
 import numpy as np
 
@@ -44,6 +47,8 @@ _NUMBER = re.compile(r"[-+]?\d[\d,]*\.?\d*")
 _LIST_PREFIX = ("\N{BULLET}", "- ", "* ")
 _TERMINAL = (".", "!", "?", ":", ";", ")", '"', "'")
 NOT_FOUND = "I could not find a clear answer to that in the retrieved passages."
+PHRASE_BONUS = 0.04
+PHRASE_CAP = 0.16
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +68,11 @@ class Unit:
     terms: frozenset[str]
     context_terms: frozenset[str]
     title_terms: frozenset[str]
+    # Consecutive word pairs, for phrase matches.
+    bigrams: frozenset[tuple[str, str]] = frozenset()
+    # The words that tell this unit apart: for a table record, its values; every row of a
+    # table repeats the column names, so they must not make two rows look the same.
+    distinct: frozenset[str] = frozenset()
     lexical: float = 0.0
     score: float = 0.0
 
@@ -103,6 +113,12 @@ def answer_units(sources: Sequence[Hit]) -> list[Unit]:
                 text = _clean(piece, record=record)
                 if len(text.split()) < 3:
                     continue
+                words = content_terms(text)
+                values = (
+                    frozenset(content_terms(" ".join(v for _, v in _fields(text))))
+                    if record
+                    else frozenset(words)
+                )
                 units.append(
                     Unit(
                         text=text,
@@ -110,9 +126,11 @@ def answer_units(sources: Sequence[Hit]) -> list[Unit]:
                         heading=heading,
                         order=len(units),
                         is_item=is_item,
-                        terms=frozenset(content_terms(text)),
+                        terms=frozenset(words),
                         context_terms=frozenset(content_terms(heading)),
                         title_terms=title_terms,
+                        bigrams=frozenset(pairwise(words)),
+                        distinct=values or frozenset(words),
                     )
                 )
     return units
@@ -128,6 +146,7 @@ def extractive_answer(
 ) -> ExtractiveAnswer:
     units = units if units is not None else answer_units(sources)
     query_terms = set(content_terms(question))
+    query_bigrams = set(pairwise(content_terms(question)))
     if not units or not query_terms:
         return _not_found(sources)
 
@@ -176,6 +195,7 @@ def extractive_answer(
         score = unit.lexical + 0.5 * float(semantic[index])
         if unit.source.document_id in targeted:
             score += 0.15
+        score += min(PHRASE_CAP, PHRASE_BONUS * len(unit.bigrams & query_bigrams))
         if wants_number and _HAS_NUMBER.search(unit.text):
             score += 0.1
         if unit.source.n:
@@ -232,7 +252,7 @@ def extractive_answer(
             or not (unit.terms & informative)
         ):
             continue
-        if any(_overlap(unit.terms, other.terms) > 0.6 for other in chosen):
+        if any(_overlap(unit.distinct, other.distinct) > 0.6 for other in chosen):
             continue
         chosen.append(unit)
 
