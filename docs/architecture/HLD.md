@@ -48,7 +48,7 @@ every time.
 | G2 | Make every ingestion choice configurable and comparable | Pipeline versions: cleaning rules, three chunking strategies (fixed tokens, recursive by structure, sentence windows), embedding model; immutable once created |
 | G3 | Retrieval that is good out of the box and tunable | pgvector HNSW vector search, Postgres full-text search, RRF or weighted fusion, metadata filters, a local cross-encoder reranker with a deterministic lexical fallback |
 | G4 | Answers that can be checked | Cited answers from a deterministic extractive answerer offline, or OpenAI-compatible and Ollama models; citations verified against the passages given |
-| G5 | Measure retrieval and answers with stable, explainable metrics | Datasets of questions with expected sources and reference answers; hit rate@k, MRR, nDCG, context precision and recall, faithfulness and correctness, all deterministic; an optional model-graded mode |
+| G5 | Measure retrieval and answers with stable, explainable metrics | Datasets of questions with expected sources and reference answers; hit rate@k, MRR, nDCG, context precision and recall, faithfulness, answer relevance and correctness, all deterministic; an optional model-graded mode |
 | G6 | Compare experiments, and gate CI on them | Runs stored with a full configuration snapshot; side-by-side comparison with per-question deltas; a CLI that exits non-zero when metrics regress past thresholds |
 | G7 | Serve pipelines to applications | Project API keys, a REST API, a typed Python SDK, Redis caching, rate limits, query analytics |
 | G8 | Runnable on a laptop without an AWS account or a paid model | Floci emulates S3, SQS, KMS and Secrets Manager, provisioned by the same Terraform as AWS; local embedding and reranking models ship in the image |
@@ -234,7 +234,7 @@ reports metric deltas and the questions that improved or regressed.
 ### 5. Gate CI on a regression
 
 ```bash
-ragkit eval gate --dataset support-golden --pipeline-version 3 \
+ragkit eval gate support-golden --version 3 \
   --min hit_rate=0.85 --max-drop 0.02 --report gate.md
 ```
 
@@ -336,9 +336,9 @@ flowchart TB
 | A job fails three times | SQS moves it to the dead-letter queue; the row is marked failed with the reason. |
 | Model provider down | Model answers return `502 upstream_error`; the extractive answerer and every retrieval path keep working. A model judge falls back to deterministic grading and records it. |
 | Cross-encoder model unavailable | Reranking falls back to the lexical reranker and the response says so (`rerank.fallback`). |
-| Valkey down | Caches are bypassed (read-through); rate limiting fails closed for login, open for queries. |
+| Valkey down | Caches are bypassed (read-through); rate limiting fails closed for sign-in (503) and open for queries, ingestion and runs. Cookie sessions cannot be checked against the sign-out list, so they are refused; API keys keep working. |
 | Index still building | Queries run against what is indexed so far and report `index_status: building`. |
-| Rolling deploy | uvicorn drains in-flight requests; the worker stops receiving, finishes in-flight jobs within a grace period, then exits. |
+| Rolling deploy | uvicorn drains in-flight requests; the worker stops receiving, finishes in-flight jobs within a 90 second grace period and hands any still running back to the queue at once, inside ECS's 120 second stop timeout. |
 
 ## Security summary
 
@@ -360,7 +360,7 @@ Details: [security](security.md) and the [threat model](threat-model.md).
 ## Observability
 
 - **Logs**: structlog JSON lines with a request id on every line and every response.
-- **Metrics** at `/metrics` (Prometheus): HTTP rate and latency by route template, retrieval
+- **Metrics** at `/metrics` (Prometheus, answered with 404 by the public load balancer): HTTP rate and latency by route template, retrieval
   stage latencies (embed, vector, keyword, fusion, rerank), cache hit ratios, documents
   parsed and indexed, evaluation runs by outcome, queue backlog.
 - **Analytics** in the product: queries per day, p50 and p95 latency, zero-hit rate and top

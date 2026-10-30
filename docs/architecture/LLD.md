@@ -299,11 +299,13 @@ For one question with `R` expected sources and the top `k` retrieved chunks
 | `mrr` | `1 / i` for the first relevant position, else 0 |
 | `ndcg` | gain 1 at position i when `c_i` covers an expected source not covered above it; `DCG = sum(gain_i / log2(i + 1))`, `IDCG` the same for `min(k, R)` gains at the top |
 | `faithfulness` | share of the answer's claim sentences that are supported: every number in the claim appears in the given context, and the best single source contains at least 70% of the claim's content words. 1.0 for an answer that makes no claims |
+| `answer_relevance` | how directly the answer addresses the question: the cosine similarity of the question and the answer (citations removed) under the pipeline's own embedder, clipped to [0, 1]; a "could not find" answer scores 0 |
 | `answer_correctness` | against the reference answer: `0.5 * F2 + 0.5 * fact_recall` when the reference has facts (numbers, identifiers such as `ACME-4011`), else `F2`. F2 is the recall-weighted F-score of stemmed content words; a "could not find" answer scores 0 |
 
-With `grader: model` the run asks the configured judge model for `faithfulness` and
-`answer_correctness` (0 to 1, with a reason) and falls back to the deterministic grade for an
-item if the judge's reply cannot be parsed, recording `grader_fallback`.
+With `grader: model` the run asks the configured judge model for `faithfulness`,
+`answer_relevance` and `answer_correctness` (0 to 1, with a reason) and falls back to the
+deterministic grade for an item if the judge's reply cannot be parsed, recording
+`grader_fallback`.
 
 ### Aggregation and comparison
 
@@ -341,7 +343,10 @@ One SQS queue (ADR-0006). Messages carry ids only:
 
 The worker long-polls with bounded concurrency, extends a message's visibility every 150 s
 while it works, returns failures with a growing delay, and after three receives SQS moves the
-message to the dead-letter queue. A leader elected through Redis (`SET NX EX`) runs the
+message to the dead-letter queue. On SIGTERM it stops receiving and gives in-flight jobs 90
+seconds; jobs still running are then cancelled and their messages made visible at once, so
+another worker resumes them immediately. ECS gives the worker a 120 second stop timeout, so
+this hand-back always happens before the task is killed. A leader elected through Redis (`SET NX EX`) runs the
 reaper every minute: documents, entries and runs stuck unfinished past their window are
 re-enqueued, or failed after three attempts. In development and tests `QUEUE_BACKEND=inline`
 runs the same handlers as background tasks in the API process.
@@ -350,14 +355,16 @@ runs the same handlers as background tasks in the API process.
 
 | Key | Value | TTL | Invalidation |
 | --- | ----- | --- | ------------ |
-| `emb:<model>:<dim>:<kind>:<sha256>` | float32 bytes | 30 days | content-addressed |
-| `q:<collection>:<corpus_version>:<sha256(request)>` | retrieval response | 5 minutes | `corpus_version` changes with every chunk write or document delete |
+| `emb:<project>:<model>:<dim>:<kind>:<sha256>` | float32 bytes | 30 days | content-addressed, scoped to the project |
+| `q:<project>:<collection>:<corpus_version>:<sha256(request)>` | retrieval response | 5 minutes | `corpus_version` changes with every chunk write or document delete |
 | `rl:<bucket>:<principal>:<window>` | counter | window + 1 s | fixed window |
 | `session:revoked:<jti>` | 1 | token lifetime | |
 | `apikey:touched:<id>` | 1 | 60 s | throttles `last_used_at` writes |
 
 Rate limits per minute: login 10 per IP, query and answer 600 per principal, ingest 120,
-evaluation runs 30.
+evaluation runs 30. If Valkey cannot be reached, the serving limits let requests through
+uncounted (logged as `rate_limit_unavailable`) while sign-in answers 503: password guessing
+is never left unthrottled.
 
 ## Authentication and access
 
@@ -396,10 +403,10 @@ Services raise typed errors from `core/errors.py`; handlers render
 
 | Module | Contents |
 | ------ | -------- |
-| `client.py` | `RAGKit(base_url, api_key, project)`, `rk.collection(slug)` with `add_texts`, `add_files`, `add_url`, `documents`, `wait_until_indexed`, `query`, `answer`, `pipelines`, `create_pipeline`, `activate`; `rk.evals` with `run`, `wait`, `results`, `compare`, `gate`, `import_dataset` |
+| `client.py` | `RAGKit(base_url, api_key, project)`, `rk.collection(slug)` with `add_texts`, `add_files`, `add_urls`, `documents`, `wait_until_indexed`, `query`, `answer`, `pipelines`, `pipeline`, `create_pipeline`, `activate`; `rk.evals` with `datasets`, `create_dataset`, `import_items`, `run`, `wait`, `results`, `compare`, `gate`, `set_baseline` |
 | `models.py` | Pydantic models for every response the SDK returns |
 | `errors.py` | `RAGKitError(status, code, message, request_id)` and subclasses |
-| `cli.py` | `ragkit query`, `ragkit ingest`, `ragkit eval run`, `ragkit eval gate` |
+| `cli.py` | `ragkit query`, `ragkit answer`, `ragkit ingest`, `ragkit eval import`, `ragkit eval run`, `ragkit eval gate` |
 
 Configuration comes from arguments or `RAGKIT_URL`, `RAGKIT_API_KEY`, `RAGKIT_PROJECT`.
 `ragkit eval gate` exits 0 when every check passes, 1 on a regression and 2 when the run could
@@ -413,18 +420,20 @@ from `/env.js` at runtime.
 | Route | Page |
 | ----- | ---- |
 | `/login` | sign in, first-run setup |
-| `/p/[project]` | overview: collections, latest runs, query traffic |
+| `/welcome` | create a first project |
+| `/p/[project]` | overview: quality trend per dataset, collections, traffic, recent activity |
 | `/p/[project]/collections` | collections |
 | `/p/[project]/collections/[collection]` | documents with per-version index status, add file, URL or text |
 | `.../documents/[document]` | parsed sections and metadata, chunks per version |
 | `.../pipelines` | versions, active marker, index status, create and activate |
 | `.../pipelines/new` | version editor with a live chunking preview |
 | `.../pipelines/[version]` | configuration, build progress, chunk browser with size distribution |
-| `/p/[project]/playground` | query one version or two side by side, with per-stage scores and the cited answer |
+| `/p/[project]/playground` | query one version or two side by side, with per-stage scores and the cited answer; the request lives in the URL, so a result can be shared and reloaded |
 | `/p/[project]/evaluations` | runs and datasets |
 | `/p/[project]/evaluations/runs/[run]` | metrics, per-tag breakdown, per-question results |
 | `/p/[project]/evaluations/compare?runs=a,b` | side-by-side metrics, chart, configuration diff, per-question deltas |
-| `/p/[project]/datasets/[dataset]` | items, JSONL import, gate thresholds and baseline |
+| `/p/[project]/evaluations/datasets/[dataset]` | items, JSONL import and export, run history, gate thresholds |
+| `/p/[project]/analytics` | requests per day, latency, zero-hit rate, top queries, per collection |
 | `/p/[project]/settings` | general, members, API keys with SDK snippets, activity |
 
 Every colour comes from CSS tokens with light and dark palettes; the theme is applied before
