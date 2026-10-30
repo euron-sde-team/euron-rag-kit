@@ -29,6 +29,7 @@ class JudgeError(Exception):
 @dataclass(frozen=True, slots=True)
 class Verdict:
     faithfulness: float
+    relevance: float | None
     correctness: float | None
     reason: str
 
@@ -52,9 +53,15 @@ def parse_verdict(reply: str) -> Verdict:
     if not isinstance(data, dict):
         raise JudgeError("the reply is not an object")
     faithfulness = _score(data.get("faithfulness"), "faithfulness", nullable=False)
+    relevance = _score(data.get("relevance"), "relevance", nullable=True)
     correctness = _score(data.get("correctness"), "correctness", nullable=True)
     reason = str(data.get("reason") or "")[:300]
-    return Verdict(faithfulness=faithfulness or 0.0, correctness=correctness, reason=reason)
+    return Verdict(
+        faithfulness=faithfulness or 0.0,
+        relevance=relevance,
+        correctness=correctness,
+        reason=reason,
+    )
 
 
 class ModelJudge:

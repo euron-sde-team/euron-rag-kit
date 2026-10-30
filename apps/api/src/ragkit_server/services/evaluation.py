@@ -23,7 +23,13 @@ from ragkit_server.core.logging import get_logger
 from ragkit_server.evaluation.aggregate import ResultRow, aggregate
 from ragkit_server.evaluation.compare import ItemView, RunView, compare
 from ragkit_server.evaluation.gate import expand_drop, run_gate
-from ragkit_server.evaluation.metrics import answer_correctness, faithfulness, retrieval_metrics
+from ragkit_server.evaluation.metrics import (
+    answer_correctness,
+    answer_relevance,
+    faithfulness,
+    retrieval_metrics,
+    strip_citations,
+)
 from ragkit_server.evaluation.relevance import ExpectedSource, RetrievedChunk, judge
 from ragkit_server.ingestion.sniff import slugify
 from ragkit_server.integrations.queue import Job
@@ -690,6 +696,12 @@ class EvaluationService:
             contexts = [source.passage for source in sources]
             grading: dict[str, Any] = {"grader": "deterministic", "answerer": label}
             values["faithfulness"] = faithfulness(text, contexts)
+            embedder = retrieval.embedder(plan)
+            question_vector = await embedder.embed_query(item.question)
+            answer_vector = (await embedder.embed_documents([strip_citations(text)]))[0]
+            values["answer_relevance"] = answer_relevance(
+                text, float(question_vector @ answer_vector)
+            )
             if item.expected_answer:
                 values["answer_correctness"] = answer_correctness(text, item.expected_answer)
             if grader == "model" and self.c.judge is not None:
@@ -698,6 +710,8 @@ class EvaluationService:
                         item.question, text, contexts, item.expected_answer
                     )
                     values["faithfulness"] = verdict.faithfulness
+                    if verdict.relevance is not None:
+                        values["answer_relevance"] = verdict.relevance
                     if item.expected_answer and verdict.correctness is not None:
                         values["answer_correctness"] = verdict.correctness
                     grading.update({"grader": self.c.judge.label, "reason": verdict.reason})

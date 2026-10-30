@@ -16,6 +16,9 @@ Answer metrics compare text:
 - faithfulness: the share of the answer's claim sentences supported by the context: every
   number in the claim appears in the context, and the best single passage contains at least
   70% of the claim's content words. An answer with no claims (a refusal) scores 1.
+- answer_relevance: how directly the answer addresses the question, the cosine similarity of
+  the question and answer embeddings under the pipeline's own model, clipped to [0, 1]. A
+  refusal scores 0.
 - answer_correctness: against the reference answer, 0.5 * F2 + 0.5 * fact recall when the
   reference holds facts (numbers, identifiers), F2 alone otherwise. F2 is the recall-weighted
   F-score over stemmed content words. A refusal scores 0.
@@ -38,7 +41,7 @@ from ragkit_server.core.text import (
 from ragkit_server.evaluation.relevance import Judgement
 
 RETRIEVAL_METRICS = ("hit_rate", "context_recall", "context_precision", "mrr", "ndcg")
-ANSWER_METRICS = ("faithfulness", "answer_correctness")
+ANSWER_METRICS = ("faithfulness", "answer_relevance", "answer_correctness")
 METRICS = (*RETRIEVAL_METRICS, *ANSWER_METRICS)
 CLAIM_SUPPORT = 0.7
 MIN_CLAIM_TERMS = 3
@@ -125,6 +128,13 @@ def faithfulness(answer: str, contexts: Sequence[str]) -> float:
         if best >= CLAIM_SUPPORT:
             supported += 1
     return supported / len(statements)
+
+
+def answer_relevance(answer: str, similarity: float) -> float:
+    """`similarity` is the cosine of the question and answer embeddings."""
+    if is_refusal(answer):
+        return 0.0
+    return min(1.0, max(0.0, similarity))
 
 
 def _f2(answer_terms: list[str], reference_terms: list[str]) -> float:

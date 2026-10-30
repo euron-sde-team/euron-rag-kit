@@ -6,12 +6,16 @@ from ragkit_server.ai.judge import JudgeError, ModelJudge, parse_verdict
 
 def test_verdicts_are_parsed_from_fenced_or_chatty_replies() -> None:
     verdict = parse_verdict(
-        'Here you go:\n```json\n{"faithfulness": 0.75, "correctness": 1.2, "reason": "ok"}\n```'
+        'Here you go:\n```json\n{"faithfulness": 0.75, "relevance": 0.5, "correctness": 1.2, '
+        '"reason": "ok"}\n```'
     )
     assert verdict.faithfulness == 0.75
+    assert verdict.relevance == 0.5
     assert verdict.correctness == 1.0  # clamped
     assert verdict.reason == "ok"
-    assert parse_verdict('{"faithfulness": 1, "correctness": null}').correctness is None
+    terse = parse_verdict('{"faithfulness": 1, "correctness": null}')
+    assert terse.correctness is None
+    assert terse.relevance is None
 
 
 @pytest.mark.parametrize(

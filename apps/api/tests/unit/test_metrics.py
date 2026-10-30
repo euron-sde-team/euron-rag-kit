@@ -4,6 +4,7 @@ import pytest
 
 from ragkit_server.evaluation.metrics import (
     answer_correctness,
+    answer_relevance,
     claims,
     faithfulness,
     is_refusal,
@@ -136,3 +137,10 @@ def test_refusals_are_recognised() -> None:
     assert is_refusal("The sources do not answer this question.")
     assert is_refusal("")
     assert not is_refusal("Refunds take five days.")
+
+
+def test_answer_relevance_clips_similarity_and_zeroes_refusals() -> None:
+    assert answer_relevance("Refunds take five business days.", 0.82) == 0.82
+    assert answer_relevance("Refunds take five business days.", -0.2) == 0.0
+    assert answer_relevance("Refunds take five business days.", 1.3) == 1.0
+    assert answer_relevance("I could not find a clear answer to that.", 0.9) == 0.0
