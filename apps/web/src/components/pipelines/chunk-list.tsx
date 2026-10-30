@@ -24,10 +24,10 @@ function ChunkItem({ chunk }: { chunk: ChunkLike }) {
       <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         <span className="text-subtle tabular font-mono">#{chunk.ordinal + 1}</span>
         {chunk.document_title ? <span className="font-medium">{chunk.document_title}</span> : null}
-        {chunk.heading ? (
+        {chunk.heading && chunk.heading !== chunk.document_title ? (
           <span className="text-muted-foreground truncate">{chunk.heading}</span>
         ) : null}
-        {chunk.location ? (
+        {chunk.location && !chunk.heading.includes(chunk.location) ? (
           <Badge tone="outline" className="font-normal">
             {chunk.location}
           </Badge>

@@ -55,6 +55,12 @@ function StageScore({ hit, stage, max }: { hit: Hit; stage: Stage; max: number }
 
 export type OtherSide = { version: number; rank: number | null };
 
+/** "Webhooks > Verifying signatures", without repeating a location the heading already names. */
+export function placeOf(heading: string, location: string): string {
+  if (!location || heading.includes(location)) return heading;
+  return heading ? `${heading}, ${location}` : location;
+}
+
 export function HitCard({
   hit,
   stages,
@@ -87,7 +93,7 @@ export function HitCard({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13.5px] font-semibold">{hit.document_title}</p>
           <p className="text-muted-foreground truncate text-xs">
-            {[hit.heading, hit.location].filter(Boolean).join(", ") || hit.external_id}
+            {placeOf(hit.heading, hit.location) || hit.external_id}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
