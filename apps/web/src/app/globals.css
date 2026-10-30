@@ -46,6 +46,7 @@
   --series-2: #d97706;
   --series-3: #5b5bd6;
   --series-4: #d6336c;
+  --series-5: #0369a1;
   --shadow-sm: 0 1px 2px rgb(16 24 24 / 0.06);
   --shadow-md: 0 8px 24px -8px rgb(16 24 24 / 0.16), 0 2px 6px rgb(16 24 24 / 0.06);
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -89,6 +90,7 @@
   --series-2: #fbbf24;
   --series-3: #8b8bf5;
   --series-4: #f472b6;
+  --series-5: #38bdf8;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 12px 32px -12px rgb(0 0 0 / 0.6), 0 2px 8px rgb(0 0 0 / 0.4);
   color-scheme: dark;
@@ -130,6 +132,7 @@
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
   --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --radius-sm: 6px;

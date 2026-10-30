@@ -19,9 +19,18 @@ import { formatCompact, formatDuration, formatNumber, formatPercent } from "@/li
 import { metricLabel } from "@/lib/metrics";
 import type { Analytics, Histogram } from "@/lib/types";
 
-export const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)"];
+export const SERIES = [
+  "var(--series-1)",
+  "var(--series-2)",
+  "var(--series-3)",
+  "var(--series-4)",
+  "var(--series-5)",
+];
 
 const axis = { fontSize: 11, fill: "var(--subtle)" };
+const unitTicks = [0, 0.25, 0.5, 0.75, 1];
+const unitTick = (value: number): string =>
+  value === 0 || value === 1 ? String(value) : value.toFixed(2);
 
 export function dayLabel(day: string): string {
   return new Date(`${day}T00:00:00`).toLocaleDateString("en-US", {
@@ -30,33 +39,47 @@ export function dayLabel(day: string): string {
   });
 }
 
-type TooltipEntry = { name?: string; value?: number | string; color?: string; dataKey?: string };
+type TooltipEntry = {
+  name?: string;
+  value?: number | string;
+  color?: string;
+  dataKey?: string;
+  payload?: Record<string, unknown>;
+};
 
 function ChartTooltip({
   active,
   payload,
   label,
+  titleKey,
   formatLabel = (value) => value,
   formatValue = (value) => formatNumber(value),
 }: {
   active?: boolean;
   payload?: TooltipEntry[];
   label?: string | number;
+  /** A field of the data point to use as the title instead of the axis label. */
+  titleKey?: string;
   formatLabel?: (label: string) => string;
   formatValue?: (value: number) => string;
 }) {
   if (!active || !payload?.length) return null;
+  const fromPoint = titleKey ? payload[0]?.payload?.[titleKey] : undefined;
+  const title =
+    typeof fromPoint === "string"
+      ? fromPoint
+      : label !== undefined
+        ? formatLabel(String(label))
+        : "";
   return (
-    <div className="border-border bg-card rounded-lg border px-3 py-2 text-xs shadow-md">
-      {label !== undefined && label !== "" ? (
-        <p className="mb-1 font-medium">{formatLabel(String(label))}</p>
-      ) : null}
+    <div className="border-border bg-card max-w-72 rounded-lg border px-3 py-2 text-xs shadow-md">
+      {title ? <p className="mb-1 font-medium">{title}</p> : null}
       {payload.map((entry) => (
         <p
           key={`${entry.dataKey ?? entry.name}`}
           className="text-muted-foreground flex items-center gap-2"
         >
-          <span className="size-2 rounded-full" style={{ background: entry.color }} />
+          <span className="size-2 shrink-0 rounded-full" style={{ background: entry.color }} />
           {entry.name}:{" "}
           <span className="text-foreground tabular font-medium">
             {typeof entry.value === "number" ? formatValue(entry.value) : (entry.value ?? "")}
@@ -83,7 +106,7 @@ export function TrendChart({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={points} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+      <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis
           dataKey="name"
@@ -95,17 +118,18 @@ export function TrendChart({
         />
         <YAxis
           domain={[0, 1]}
-          ticks={[0, 0.25, 0.5, 0.75, 1]}
+          ticks={unitTicks}
+          tickFormatter={unitTick}
           tick={axis}
           tickLine={false}
           axisLine={false}
-          width={44}
+          width={36}
         />
         <Tooltip
-          content={<ChartTooltip formatValue={(v) => v.toFixed(3)} />}
+          content={<ChartTooltip titleKey="label" formatValue={(v) => v.toFixed(3)} />}
           cursor={{ stroke: "var(--input)" }}
         />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} itemSorter={null} />
         {metrics.map((metric, index) => (
           <Line
             key={metric}
@@ -125,45 +149,55 @@ export function TrendChart({
   );
 }
 
-/** Grouped bars: one group per metric, one bar per run. */
+/** One group of horizontal bars per metric, one bar per run: labels stay readable at any width. */
 export function MetricBars({
   rows,
   runs,
-  height = 280,
 }: {
   rows: ({ metric: string } & Record<string, number | string | null>)[];
   runs: { key: string; name: string }[];
-  height?: number;
 }) {
+  const height = Math.max(260, rows.length * (runs.length * 12 + 24) + 60);
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart
         data={rows}
-        margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
-        barCategoryGap="22%"
+        layout="vertical"
+        margin={{ top: 4, right: 12, left: 0, bottom: 0 }}
+        barCategoryGap="24%"
+        barGap={2}
       >
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="metric" tick={axis} tickLine={false} axisLine={false} interval={0} />
-        <YAxis
+        <CartesianGrid horizontal={false} stroke="var(--border)" />
+        <XAxis
+          type="number"
           domain={[0, 1]}
-          ticks={[0, 0.25, 0.5, 0.75, 1]}
+          ticks={unitTicks}
+          tickFormatter={unitTick}
           tick={axis}
           tickLine={false}
           axisLine={false}
-          width={44}
+        />
+        <YAxis
+          type="category"
+          dataKey="metric"
+          tick={{ ...axis, fill: "var(--muted-foreground)" }}
+          tickLine={false}
+          axisLine={false}
+          width={92}
         />
         <Tooltip
           content={<ChartTooltip formatValue={(v) => v.toFixed(3)} />}
           cursor={{ fill: "var(--muted)" }}
         />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} itemSorter={null} />
         {runs.map((run, index) => (
           <Bar
             key={run.key}
             dataKey={run.key}
             name={run.name}
             fill={SERIES[index % SERIES.length]}
-            radius={[3, 3, 0, 0]}
+            radius={[0, 3, 3, 0]}
+            maxBarSize={14}
             isAnimationActive={false}
           />
         ))}
@@ -176,7 +210,7 @@ function bucketLabel(bucket: Histogram[number]): string {
   return bucket.to === -1 ? `${bucket.from}+` : `${bucket.from}-${bucket.to}`;
 }
 
-/** Chunks per token-count bucket. */
+/** Chunks per token-count bucket. Ticks show each bucket's lower bound; the tooltip the range. */
 export function ChunkHistogram({
   histogram,
   height = 180,
@@ -187,9 +221,18 @@ export function ChunkHistogram({
   const data = histogram.map((bucket) => ({ bucket: bucketLabel(bucket), count: bucket.count }));
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="bucket" tick={axis} tickLine={false} axisLine={false} interval={0} />
+        <XAxis
+          dataKey="bucket"
+          tick={axis}
+          tickLine={false}
+          axisLine={false}
+          interval={0}
+          tickFormatter={(value: string) =>
+            value.endsWith("+") ? value : (value.split("-")[0] ?? value)
+          }
+        />
         <YAxis allowDecimals={false} tick={axis} tickLine={false} axisLine={false} width={40} />
         <Tooltip
           content={<ChartTooltip formatLabel={(l) => `${l} tokens`} />}
@@ -207,10 +250,11 @@ export function ChunkHistogram({
   );
 }
 
+/** Retrieval-only requests and answers per day, stacked: the two counts are disjoint. */
 export function TrafficChart({ days }: { days: Analytics["days"] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={days} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+      <AreaChart data={days} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="fill-retrieval" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--series-1)" stopOpacity={0.45} />
@@ -236,13 +280,13 @@ export function TrafficChart({ days }: { days: Analytics["days"] }) {
           tick={axis}
           tickLine={false}
           axisLine={false}
-          width={44}
+          width={36}
         />
         <Tooltip
           content={<ChartTooltip formatLabel={dayLabel} />}
           cursor={{ stroke: "var(--input)" }}
         />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} itemSorter={null} />
         <Area
           type="monotone"
           dataKey="queries"
@@ -268,10 +312,13 @@ export function TrafficChart({ days }: { days: Analytics["days"] }) {
   );
 }
 
+const durationTick = (ms: number): string =>
+  ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 ? 1 : 0)} s` : `${Math.round(ms)} ms`;
+
 export function LatencyChart({ days }: { days: Analytics["days"] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={days} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+      <LineChart data={days} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis
           dataKey="date"
@@ -282,18 +329,17 @@ export function LatencyChart({ days }: { days: Analytics["days"] }) {
           minTickGap={24}
         />
         <YAxis
-          tickFormatter={(v: number) => `${Math.round(v)}`}
+          tickFormatter={durationTick}
           tick={axis}
           tickLine={false}
           axisLine={false}
-          width={44}
-          unit=" ms"
+          width={52}
         />
         <Tooltip
           content={<ChartTooltip formatLabel={dayLabel} formatValue={formatDuration} />}
           cursor={{ stroke: "var(--input)" }}
         />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={legendStyle} itemSorter={null} />
         <Line
           type="monotone"
           dataKey="p50_ms"
@@ -324,7 +370,7 @@ export function ZeroHitChart({ days }: { days: Analytics["days"] }) {
   }));
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis
           dataKey="date"
@@ -335,7 +381,7 @@ export function ZeroHitChart({ days }: { days: Analytics["days"] }) {
           minTickGap={24}
         />
         <YAxis
-          tickFormatter={(v: number) => formatPercent(v)}
+          tickFormatter={(v: number) => formatPercent(v, 1)}
           tick={axis}
           tickLine={false}
           axisLine={false}
