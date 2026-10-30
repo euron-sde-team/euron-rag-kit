@@ -1,0 +1,31 @@
+Acme Payments API release notes 2026
+
+Release 2026-09-15 (API version 2.9)
+
+Added payment_method_options.card.request_three_d_secure, which lets you ask for 3-D Secure
+authentication on every card payment.
+
+Webhook signatures now use v1 HMAC-SHA256 signatures only. The legacy v0 signature scheme
+was removed after a twelve month deprecation period.
+
+The dashboard shows the dispute rate for the last 30 days on the Disputes page.
+
+Release 2026-06-02 (API version 2.8)
+
+Instant Payouts are generally available in the United Kingdom.
+
+New decline code ACME-4013 incorrect_cvc. Payments declined for a wrong security code used to
+return ACME-4001 card_declined; they now return the more specific code.
+
+List endpoints accept limit values up to 100, up from 50.
+
+Release 2026-03-10 (API version 2.7)
+
+Python SDK 5.0 adds acme.AsyncClient for asyncio applications.
+
+Idempotency keys are now retained for 24 hours, up from 12 hours.
+
+Deprecations
+
+The legacy /v1/charges endpoint will be shut down on 2026-12-31. Migrate to PaymentIntents
+before that date; requests to /v1/charges after the shutdown fail with HTTP 410.
