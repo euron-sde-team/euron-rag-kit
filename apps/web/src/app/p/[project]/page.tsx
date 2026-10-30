@@ -34,7 +34,7 @@ import {
 import { deltaAgainst, trendPoints } from "@/lib/runs";
 import type { Run } from "@/lib/types";
 
-const TREND = ["hit_rate", "mrr", "ndcg", "faithfulness"];
+const TREND = ["hit_rate", "mrr", "ndcg", "answer_correctness"];
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
@@ -70,7 +70,7 @@ function QualityCard({ project }: { project: string }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-wrap">
         <div>
           <CardTitle>Retrieval quality</CardTitle>
           <CardDescription>Metric means of every run on a dataset, oldest first.</CardDescription>
@@ -78,7 +78,7 @@ function QualityCard({ project }: { project: string }) {
         {datasets.data?.length ? (
           <NativeSelect
             aria-label="Dataset"
-            className="w-48"
+            className="w-full sm:w-48"
             value={slug ?? ""}
             onChange={(e) => setChosen(e.target.value)}
           >
@@ -115,9 +115,9 @@ function QualityCard({ project }: { project: string }) {
             <thead className="text-subtle text-left text-xs">
               <tr>
                 <th className="px-5 py-2 font-medium">Run</th>
-                <th className="hidden px-3 py-2 font-medium sm:table-cell">Version</th>
-                <th className="px-3 py-2 text-right font-medium">MRR</th>
-                <th className="hidden px-5 py-2 text-right font-medium sm:table-cell">
+                <th className="hidden w-20 px-3 py-2 font-medium sm:table-cell">Version</th>
+                <th className="w-20 px-3 py-2 text-right font-medium">MRR</th>
+                <th className="hidden w-28 px-5 py-2 text-right font-medium sm:table-cell">
                   vs baseline
                 </th>
               </tr>
@@ -192,7 +192,7 @@ function CollectionsCard({ project }: { project: string }) {
                     {formatNumber(collection.ready_documents)} of{" "}
                     {formatNumber(collection.document_count)} documents ready,{" "}
                     {formatCompact(collection.chunk_count)} chunks, {collection.version_count}{" "}
-                    versions
+                    {collection.version_count === 1 ? "version" : "versions"}
                   </span>
                 </Link>
               </li>
@@ -302,7 +302,7 @@ export default function OverviewPage() {
           hint={traffic ? `cache served ${formatPercent(traffic.cache_hit_rate)}` : ""}
         />
       </div>
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <QualityCard project={project} />
         <div className="space-y-6">
           <CollectionsCard project={project} />

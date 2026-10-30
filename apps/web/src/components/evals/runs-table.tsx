@@ -91,7 +91,7 @@ export function RunsTable({ project }: { project: string }) {
           <Skeleton className="h-12" />
         </div>
       ) : items.length ? (
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Evaluation runs" tabIndex={0} className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <caption className="sr-only">Evaluation runs</caption>
             <thead className="text-subtle border-border border-b text-left text-xs">

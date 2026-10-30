@@ -132,7 +132,7 @@ export default function DocumentPage() {
         </div>
       </div>
       {document.error ? <ErrorNotice message={document.error} /> : null}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader>
             <div>

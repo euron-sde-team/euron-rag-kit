@@ -148,7 +148,7 @@ function Compare() {
   return (
     <div className="space-y-6">
       <Legend project={project} comparison={data} />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card>
           <CardHeader>
             <div>
@@ -167,7 +167,12 @@ function Compare() {
               <CardDescription>Differences under 0.005 are treated as noise.</CardDescription>
             </div>
           </CardHeader>
-          <div className="mt-3 overflow-x-auto">
+          <div
+            role="region"
+            aria-label="Metric values and deltas"
+            tabIndex={0}
+            className="mt-3 overflow-x-auto"
+          >
             <table className="w-full text-[13px]">
               <caption className="sr-only">Metric values and deltas</caption>
               <thead className="text-subtle border-border border-y text-left text-xs">
@@ -213,7 +218,12 @@ function Compare() {
           </div>
         </CardHeader>
         {data.config_diff.length ? (
-          <div className="mt-3 overflow-x-auto">
+          <div
+            role="region"
+            aria-label="Configuration differences"
+            tabIndex={0}
+            className="mt-3 overflow-x-auto"
+          >
             <table className="w-full text-[13px]">
               <caption className="sr-only">Configuration differences</caption>
               <thead className="text-subtle border-border border-y text-left text-xs">

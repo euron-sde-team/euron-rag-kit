@@ -144,7 +144,7 @@ function CreateCollectionDialog({
           </div>
           <fieldset className="space-y-1.5">
             <legend className="text-[13px] font-medium">First pipeline version</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {CHOICES.map((option) => (
                 <label
                   key={option.id}
@@ -210,12 +210,12 @@ export default function CollectionsPage() {
       />
       {collections.error ? <ErrorNotice message={collections.error.message} /> : null}
       {collections.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Skeleton className="h-52" />
           <Skeleton className="h-52" />
         </div>
       ) : collections.data?.length ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {collections.data.map((collection) => (
             <CollectionCard key={collection.id} project={project} collection={collection} />
           ))}

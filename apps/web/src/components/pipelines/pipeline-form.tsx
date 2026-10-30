@@ -39,7 +39,7 @@ function Section({
           <CardDescription>{description}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">{children}</CardContent>
+      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</CardContent>
     </Card>
   );
 }
@@ -255,7 +255,10 @@ export function PipelineForm({
   const a = draft.answer;
 
   return (
-    <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+    <form
+      onSubmit={submit}
+      className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]"
+    >
       <div className="space-y-6">
         <Card>
           <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">

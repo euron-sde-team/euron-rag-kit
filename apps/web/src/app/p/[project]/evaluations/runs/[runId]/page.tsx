@@ -57,7 +57,7 @@ function ByTag({ run }: { run: Run }) {
           <CardDescription>Where the version is strong and where it struggles.</CardDescription>
         </div>
       </CardHeader>
-      <div className="mt-3 overflow-x-auto">
+      <div role="region" aria-label="Metrics by tag" tabIndex={0} className="mt-3 overflow-x-auto">
         <table className="w-full text-[13px]">
           <caption className="sr-only">Metrics by tag</caption>
           <thead className="text-subtle border-border border-y text-left text-xs">
@@ -140,7 +140,12 @@ function Results({ project, run }: { project: string; run: Run }) {
           ))}
         </NativeSelect>
       </CardHeader>
-      <div className="mt-3 overflow-x-auto">
+      <div
+        role="region"
+        aria-label="Per-question results"
+        tabIndex={0}
+        className="mt-3 overflow-x-auto"
+      >
         {results.isLoading ? (
           <div className="space-y-2 p-5">
             <Skeleton className="h-10" />
@@ -321,7 +326,7 @@ export default function RunPage() {
       ) : null}
 
       {run.status === "completed" ? (
-        <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <ByTag run={run} />
           <div className="space-y-6">
             <GatePanel project={project} runId={run.id} />

@@ -199,7 +199,7 @@ export function ApiKeysPanel({ project }: { project: string }) {
                   autoFocus
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="key-role">Access</Label>
                   <NativeSelect

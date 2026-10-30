@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
       />
       {analytics.error ? <ErrorNotice message={analytics.error.message} /> : null}
       {!data ? (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
@@ -114,7 +114,7 @@ export default function AnalyticsPage() {
               <TrafficChart days={data.days} />
             </CardContent>
           </Card>
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <div>
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <Card>
               <CardHeader>
                 <div>
@@ -150,7 +150,12 @@ export default function AnalyticsPage() {
                   </CardDescription>
                 </div>
               </CardHeader>
-              <div className="mt-3 overflow-x-auto">
+              <div
+                role="region"
+                aria-label="Top queries"
+                tabIndex={0}
+                className="mt-3 overflow-x-auto"
+              >
                 <table className="w-full text-[13px]">
                   <caption className="sr-only">Top queries</caption>
                   <thead className="text-subtle border-border border-y text-left text-xs">

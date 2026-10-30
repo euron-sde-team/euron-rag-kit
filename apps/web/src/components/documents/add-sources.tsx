@@ -244,7 +244,7 @@ export function AddSourcesDialog({
               <MetadataField id="files-metadata" value={metadata} onChange={setMetadata} />
             </TabsContent>
             <TabsContent value="text" className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
                 <div className="space-y-1.5">
                   <Label htmlFor="text-title">Title</Label>
                   <Input id="text-title" value={title} onChange={(e) => setTitle(e.target.value)} />

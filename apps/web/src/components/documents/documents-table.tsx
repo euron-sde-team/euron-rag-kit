@@ -28,7 +28,7 @@ function MetadataChips({ metadata }: { metadata: Record<string, unknown> }) {
   );
   if (!entries.length) return null;
   return (
-    <span className="mt-1 flex flex-wrap gap-1">
+    <span className="mt-1 hidden flex-wrap gap-1 sm:flex">
       {entries.slice(0, 3).map(([key, value]) => (
         <Badge key={key} tone="outline" className="font-normal">
           {key}: {String(value)}
@@ -145,19 +145,21 @@ export function DocumentsTable({
           <Skeleton className="h-12" />
         </div>
       ) : items.length ? (
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Documents" tabIndex={0} className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <caption className="sr-only">Documents</caption>
             <thead className="text-subtle border-border border-b text-left text-xs">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Document</th>
-                <th className="hidden px-3 py-2.5 font-medium md:table-cell">Type</th>
-                <th className="hidden px-3 py-2.5 text-right font-medium sm:table-cell">
+                <th className="hidden w-28 px-3 py-2.5 font-medium md:table-cell">Type</th>
+                <th className="hidden w-24 px-3 py-2.5 text-right font-medium sm:table-cell">
                   Sections
                 </th>
-                <th className="hidden px-3 py-2.5 text-right font-medium sm:table-cell">Tokens</th>
-                <th className="px-3 py-2.5 font-medium">Status</th>
-                <th className="hidden px-3 py-2.5 font-medium lg:table-cell">Added</th>
+                <th className="hidden w-24 px-3 py-2.5 text-right font-medium sm:table-cell">
+                  Tokens
+                </th>
+                <th className="w-32 px-3 py-2.5 font-medium">Status</th>
+                <th className="hidden w-36 px-3 py-2.5 font-medium lg:table-cell">Added</th>
                 {editable ? (
                   <th className="w-12 px-3 py-2.5">
                     <span className="sr-only">Actions</span>

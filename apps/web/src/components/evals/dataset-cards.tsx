@@ -33,7 +33,7 @@ export function DatasetCards({
   if (datasets.error) return <ErrorNotice message={datasets.error.message} />;
   if (datasets.isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Skeleton className="h-44" />
         <Skeleton className="h-44" />
       </div>
@@ -51,7 +51,7 @@ export function DatasetCards({
     );
   }
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {datasets.data.map((dataset) => {
         const last = dataset.last_run;
         const chips = gateChips(dataset.gate);

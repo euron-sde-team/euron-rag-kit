@@ -105,7 +105,7 @@ export function NewDatasetDialog({
         className="w-[min(94vw,40rem)]"
       >
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="dataset-name">Name</Label>
               <Input

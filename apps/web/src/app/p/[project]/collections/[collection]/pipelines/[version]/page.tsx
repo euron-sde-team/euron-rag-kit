@@ -349,7 +349,7 @@ export default function VersionPage() {
           <ConfigView config={data.config} />
         </CardContent>
       </Card>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Suspense fallback={<Skeleton className="h-96" />}>
           <ChunkBrowser project={project} collection={collection} version={data} />
         </Suspense>

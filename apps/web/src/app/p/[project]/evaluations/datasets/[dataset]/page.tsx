@@ -94,7 +94,7 @@ export default function DatasetPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader>
             <div>
@@ -106,7 +106,7 @@ export default function DatasetPage() {
             {runs.isLoading ? (
               <Skeleton className="h-60" />
             ) : points.length ? (
-              <TrendChart points={points} metrics={TREND} k={runs.data?.items[0]?.k} height={260} />
+              <TrendChart points={points} metrics={TREND} k={runs.data?.items[0]?.k} height={340} />
             ) : (
               <EmptyState
                 title="No completed runs yet"
@@ -128,7 +128,12 @@ export default function DatasetPage() {
             </CardDescription>
           </div>
         </CardHeader>
-        <div className="mt-3 overflow-x-auto">
+        <div
+          role="region"
+          aria-label="Dataset questions"
+          tabIndex={0}
+          className="mt-3 overflow-x-auto"
+        >
           {items.isLoading ? (
             <div className="space-y-2 p-5">
               <Skeleton className="h-10" />
@@ -149,7 +154,7 @@ export default function DatasetPage() {
                 {items.data.items.map((item) => (
                   <tr key={item.id} className="align-top">
                     <td className="text-subtle tabular px-5 py-2.5 font-mono text-xs">
-                      {item.ordinal + 1}
+                      {item.ordinal}
                     </td>
                     <td className="min-w-56 px-2 py-2.5">
                       <p className="font-medium">{item.question}</p>
