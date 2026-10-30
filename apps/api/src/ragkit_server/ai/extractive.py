@@ -249,7 +249,7 @@ def extractive_answer(
         elif (
             unit.score < best.score * 0.7
             or unit.lexical < best.lexical * 0.6
-            or not (unit.terms & informative)
+            or not (unit.distinct & informative)
         ):
             continue
         if any(_overlap(unit.distinct, other.distinct) > 0.6 for other in chosen):
