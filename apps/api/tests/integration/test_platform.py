@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import httpx
 import pytest
@@ -10,10 +11,11 @@ from redis.asyncio import Redis
 
 from ragkit_server.core.config import Settings
 from ragkit_server.core.errors import NotFoundError
-from ragkit_server.core.ratelimit import RateLimiter
+from ragkit_server.core.ratelimit import RateLimiter, RateLimitResult
 from ragkit_server.db.migrate import migrate
 from ragkit_server.integrations.storage import S3Storage
 from ragkit_server.main import create_app
+from tests.integration.support import signup
 
 pytestmark = pytest.mark.integration
 
@@ -96,3 +98,53 @@ async def test_sign_in_attempts_are_rate_limited_per_client(settings: Settings) 
                 (await http.post("/api/v1/auth/login", json=body)).status_code for _ in range(3)
             ]
     assert codes == [401, 401, 429]
+
+
+class _UnreachableLimiter(RateLimiter):
+    """A limiter whose Valkey is down."""
+
+    def __init__(self) -> None:
+        pass
+
+    async def hit(self, key: str, limit: int, window_s: int = 60) -> RateLimitResult:
+        raise ConnectionError("valkey is unreachable")
+
+
+class _UnreachableRedis:
+    """Every command fails, as it does while Valkey is down."""
+
+    def __getattr__(self, name: str) -> Any:
+        async def fail(*args: Any, **kwargs: Any) -> Any:
+            raise ConnectionError("valkey is unreachable")
+
+        return fail
+
+
+async def test_without_valkey_serving_continues_and_sign_in_refuses(
+    client: httpx.AsyncClient,
+) -> None:
+    account = await signup(client, "Valkey Outage")
+    created = await client.post(
+        f"/api/v1/projects/{account.project}/api-keys",
+        json={"name": "outage"},
+        headers=account.headers,
+    )
+    key = {"authorization": f"Bearer {created.json()['key']}"}
+    container = client.app_state.container  # type: ignore[attr-defined]
+    limiter, redis = container.limiter, container.redis
+    container.limiter, container.redis = _UnreachableLimiter(), _UnreachableRedis()
+    try:
+        # API keys keep serving; the limits let requests through uncounted.
+        listed = await client.get(f"/api/v1/projects/{account.project}/collections", headers=key)
+        assert listed.status_code == 200
+        # A session cannot be checked against the sign-out list, so it is refused.
+        refused = await client.get("/api/v1/auth/me", headers=account.headers)
+        assert refused.status_code == 503
+        # And password guessing is never left unthrottled.
+        login = await client.post(
+            "/api/v1/auth/login", json={"email": "someone@example.com", "password": "x" * 12}
+        )
+        assert login.status_code == 503
+        assert login.json()["error"]["code"] == "service_unavailable"
+    finally:
+        container.limiter, container.redis = limiter, redis

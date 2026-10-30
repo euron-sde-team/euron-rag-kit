@@ -8,12 +8,15 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ragkit_server.core.errors import NotFoundError, UnauthorizedError
+from ragkit_server.core.logging import get_logger
 from ragkit_server.core.security import generate_api_key, parse_api_key, verify_api_key_secret
 from ragkit_server.models import ApiKey, Project
 from ragkit_server.repositories.api_keys import ApiKeyRepository
 from ragkit_server.services import audit
 from ragkit_server.services.container import Container
 from ragkit_server.services.principal import Principal
+
+log = get_logger("ragkit.api_keys")
 
 _TOUCH_INTERVAL_S = 60
 
@@ -97,7 +100,15 @@ class ApiKeyService:
                 "That API key has been revoked or has expired.", code="invalid_api_key"
             )
         # Record use at most once a minute per key, so busy keys do not write on every call.
-        if await self.c.redis.set(f"apikey:touched:{key.id}", b"1", ex=_TOUCH_INTERVAL_S, nx=True):
+        # Without Valkey the key still works; only the last-used time is not updated.
+        try:
+            first_this_minute = await self.c.redis.set(
+                f"apikey:touched:{key.id}", b"1", ex=_TOUCH_INTERVAL_S, nx=True
+            )
+        except Exception:
+            log.warning("api_key_touch_skipped", key_id=str(key.id))
+            return key
+        if first_this_minute:
             key.last_used_at = now
             await self.session.commit()
         return key

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request, Response, status
 
 from ragkit_server.api.deps import ContainerDep, PrincipalDep, SessionDep, UserDep, client_ip
-from ragkit_server.core.errors import RateLimitedError
+from ragkit_server.core.errors import RateLimitedError, ServiceUnavailableError
 from ragkit_server.core.security import SessionClaims
 from ragkit_server.models import User
 from ragkit_server.schemas.auth import (
@@ -42,9 +42,15 @@ def _set_cookie(
 
 
 async def _login_rate_limit(request: Request, response: Response, container: ContainerDep) -> None:
-    result = await container.limiter.hit(
-        f"login:{client_ip(request)}", container.settings.rate_limit_login
-    )
+    try:
+        result = await container.limiter.hit(
+            f"login:{client_ip(request)}", container.settings.rate_limit_login
+        )
+    except Exception as exc:
+        # Without the counter, password guessing would be unthrottled: refuse instead.
+        raise ServiceUnavailableError(
+            "Sign-in is unavailable for a moment. Try again shortly."
+        ) from exc
     response.headers.update(result.headers())
     if not result.allowed:
         raise RateLimitedError("Too many sign-in attempts. Wait a minute and try again.")

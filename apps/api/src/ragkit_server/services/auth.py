@@ -13,6 +13,7 @@ from ragkit_server.core.errors import (
     ConflictError,
     ForbiddenError,
     RateLimitedError,
+    ServiceUnavailableError,
     UnauthorizedError,
 )
 from ragkit_server.core.security import (
@@ -80,7 +81,15 @@ class AuthService:
 
     async def resolve(self, token: str) -> tuple[User, SessionClaims]:
         claims = decode_session(token, secret=self.c.settings.session_secret.get_secret_value())
-        if await self.c.redis.exists(_revoked_key(claims.jti)):
+        try:
+            revoked = await self.c.redis.exists(_revoked_key(claims.jti))
+        except Exception as exc:
+            # A signed-out token must never work again, so without the sign-out list the
+            # session is refused rather than trusted.
+            raise ServiceUnavailableError(
+                "Sessions cannot be checked right now. Try again shortly."
+            ) from exc
+        if revoked:
             raise UnauthorizedError("You have signed out. Sign in again.")
         user = await self.users.get(claims.user_id)
         if user is None or user.session_version != claims.session_version:

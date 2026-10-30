@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ragkit_server.core.config import Settings
 from ragkit_server.core.errors import ForbiddenError, RateLimitedError, UnauthorizedError
+from ragkit_server.core.logging import get_logger
 from ragkit_server.core.security import API_KEY_PREFIX
 from ragkit_server.models import Collection, Project, User
 from ragkit_server.models.enums import Role
@@ -23,6 +24,7 @@ from ragkit_server.services.container import Container
 from ragkit_server.services.principal import Principal
 from ragkit_server.services.projects import ProjectService, require_role
 
+log = get_logger("ragkit.api")
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
@@ -155,9 +157,15 @@ def rate_limit(bucket: str, setting: str) -> Callable[..., Awaitable[None]]:
     async def dependency(
         response: Response, principal: PrincipalDep, container: ContainerDep
     ) -> None:
-        result = await container.limiter.hit(
-            f"{bucket}:{principal.rate_key}", getattr(container.settings, setting)
-        )
+        try:
+            result = await container.limiter.hit(
+                f"{bucket}:{principal.rate_key}", getattr(container.settings, setting)
+            )
+        except Exception:
+            # Serving stays up when Valkey is down: the request passes uncounted rather
+            # than failing. Sign-in is the exception and fails closed (routes/auth.py).
+            log.warning("rate_limit_unavailable", bucket=bucket)
+            return
         response.headers.update(result.headers())
         if not result.allowed:
             raise RateLimitedError(headers={"retry-after": str(result.reset_s), **result.headers()})
