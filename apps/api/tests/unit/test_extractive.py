@@ -92,6 +92,8 @@ def test_phrases_and_table_values_win_over_scattered_words() -> None:
         n=2,
         title="Rate limits",
     )
-    answer = extractive_answer("How many requests per second are allowed in live mode?", [table, load])
+    answer = extractive_answer(
+        "How many requests per second are allowed in live mode?", [table, load]
+    )
     assert "Mode: Live mode; Requests per second: 100 [1]" in answer.text.splitlines()[0]
     assert "Search endpoints" not in answer.text
