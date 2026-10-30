@@ -234,7 +234,7 @@ class IngestionService:
             dim = index.embedding_dim
             model_key = index.embedding_model
             title, metadata = document.title, dict(document.meta or {})
-            collection_id = document.collection_id
+            collection_id, project_id = document.collection_id, document.project_id
             await session.commit()
 
         config = PipelineConfig.model_validate(
@@ -250,7 +250,9 @@ class IngestionService:
                 drafts = await anyio.to_thread.run_sync(
                     chunk_sections, cleaned, self.c.tokens, chunking_options(config)
                 )
-                embedder = self.c.embedders.get(spec_for_index(model_key, settings, dim))
+                embedder = self.c.embedders.get(
+                    spec_for_index(model_key, settings, dim), str(project_id)
+                )
                 contextual = bool(settings["embedding"].get("contextual", True))
                 texts = [
                     "\n".join(part for part in (title, d.heading, d.text) if part)

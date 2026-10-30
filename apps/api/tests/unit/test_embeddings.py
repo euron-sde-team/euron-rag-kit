@@ -45,23 +45,38 @@ def test_registry_resolution_and_custom_models() -> None:
         resolve_embedding("custom", "carrier-pigeon", 384)
 
 
+class Counting(HashEmbedder):
+    def __init__(self) -> None:
+        super().__init__(HASH)
+        self.calls: list[int] = []
+
+    async def embed_documents(self, texts):  # type: ignore[no-untyped-def]
+        self.calls.append(len(texts))
+        return await super().embed_documents(texts)
+
+
 async def test_the_cache_serves_repeats_without_calling_the_model() -> None:
-    calls: list[int] = []
-
-    class Counting(HashEmbedder):
-        async def embed_documents(self, texts):  # type: ignore[no-untyped-def]
-            calls.append(len(texts))
-            return await super().embed_documents(texts)
-
-    cached = CachedEmbedder(Counting(HASH), fakeredis.FakeAsyncRedis(), ttl_s=60)
+    model = Counting()
+    cached = CachedEmbedder(model, fakeredis.FakeAsyncRedis(), ttl_s=60, scope="project-a")
     first = await cached.embed_documents(["alpha beta", "gamma delta"])
     second = await cached.embed_documents(["gamma delta", "alpha beta", "epsilon"])
-    assert calls == [2, 1]
+    assert model.calls == [2, 1]
     assert np.allclose(first[0], second[1])
 
 
-def test_the_pool_reuses_embedders_and_reports_missing_credentials() -> None:
+async def test_projects_never_share_cache_entries() -> None:
+    model = Counting()
+    redis = fakeredis.FakeAsyncRedis()
+    await CachedEmbedder(model, redis, ttl_s=60, scope="project-a").embed_documents(["alpha"])
+    await CachedEmbedder(model, redis, ttl_s=60, scope="project-b").embed_documents(["alpha"])
+    assert model.calls == [1, 1]
+    keys = sorted(key.decode() for key in await redis.keys("emb:*"))
+    assert [key.split(":")[1] for key in keys] == ["project-a", "project-b"]
+
+
+def test_the_pool_loads_each_model_once_and_reports_missing_credentials() -> None:
     pool = EmbedderPool(Settings(), fakeredis.FakeAsyncRedis())
-    assert pool.get(HASH) is pool.get(HASH)
+    assert pool.model(HASH) is pool.model(HASH)
+    assert pool.get(HASH, "p1").inner is pool.get(HASH, "p2").inner
     assert pool.availability(REGISTRY["openai:text-embedding-3-small"]) is not None
     assert pool.availability(HASH) is None

@@ -317,21 +317,24 @@ class OllamaEmbedder:
 
 
 class CachedEmbedder:
-    """Read-through Redis cache keyed by model, width and the SHA-256 of the text.
+    """Read-through Redis cache keyed by project, model, width and the SHA-256 of the text.
 
     Re-indexing unchanged text with the same model, two pipeline versions sharing a model,
-    or a popular query asked again costs one Redis round trip instead of a model call.
+    or a popular query asked again costs one Redis round trip instead of a model call. The
+    project is part of the key so one project's traffic can never reveal, even through
+    timing, what another project has embedded.
     """
 
-    def __init__(self, inner: Embedder, redis: Redis, ttl_s: int) -> None:
+    def __init__(self, inner: Embedder, redis: Redis, ttl_s: int, scope: str) -> None:
         self.inner = inner
         self.spec = inner.spec
         self._redis = redis
         self._ttl = ttl_s
+        self._scope = scope
 
     def _key(self, text: str, kind: str) -> str:
         digest = hashlib.sha256(text.encode()).hexdigest()
-        return f"emb:{self.spec.key}:{self.spec.dim}:{kind}:{digest}"
+        return f"emb:{self._scope}:{self.spec.key}:{self.spec.dim}:{kind}:{digest}"
 
     async def _cached(self, texts: Sequence[str], kind: str) -> Matrix:
         if not texts:
@@ -374,12 +377,12 @@ class CachedEmbedder:
 
 
 class EmbedderPool:
-    """One embedder per model per process, created on first use and cached in Redis."""
+    """One model per process, created on first use, behind a per-project Redis cache."""
 
     def __init__(self, settings: Settings, redis: Redis) -> None:
         self._settings = settings
         self._redis = redis
-        self._embedders: dict[str, CachedEmbedder] = {}
+        self._models: dict[str, Embedder] = {}
         self._closers: list[Any] = []
 
     def availability(self, spec: EmbeddingSpec) -> str | None:
@@ -391,10 +394,16 @@ class EmbedderPool:
             )
         return None
 
-    def get(self, spec: EmbeddingSpec) -> CachedEmbedder:
-        cached = self._embedders.get(spec.key)
-        if cached is not None:
-            return cached
+    def get(self, spec: EmbeddingSpec, scope: str) -> CachedEmbedder:
+        """The model for `spec`, cached under `scope` (a project id)."""
+        return CachedEmbedder(
+            self.model(spec), self._redis, self._settings.embedding_cache_ttl_s, scope
+        )
+
+    def model(self, spec: EmbeddingSpec) -> Embedder:
+        existing = self._models.get(spec.key)
+        if existing is not None:
+            return existing
         inner: Embedder
         settings = self._settings
         match spec.provider:
@@ -415,16 +424,15 @@ class EmbedderPool:
                 inner = LocalEmbedder(
                     spec, settings.embeddings_cache_dir, settings.embeddings_batch_size
                 )
-        cached = CachedEmbedder(inner, self._redis, settings.embedding_cache_ttl_s)
-        self._embedders[spec.key] = cached
-        return cached
+        self._models[spec.key] = inner
+        return inner
 
     async def warm_up(self, keys: Sequence[str]) -> None:
         for key in keys:
             spec = REGISTRY.get(key)
             if spec is not None and spec.provider == "local":
                 try:
-                    await self.get(spec).inner.embed_query("warm up")
+                    await self.model(spec).embed_query("warm up")
                 except Exception as exc:
                     log.warning("embedding_warm_up_failed", model=key, error=str(exc))
 

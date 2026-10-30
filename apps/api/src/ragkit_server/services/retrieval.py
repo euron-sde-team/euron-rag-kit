@@ -20,7 +20,7 @@ import orjson
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ragkit_server.ai.citations import extract_citations
-from ragkit_server.ai.embeddings import EmbeddingSpec, spec_for_index
+from ragkit_server.ai.embeddings import CachedEmbedder, EmbeddingSpec, spec_for_index
 from ragkit_server.core import metrics
 from ragkit_server.core.errors import NotFoundError
 from ragkit_server.core.logging import get_logger
@@ -113,6 +113,10 @@ class RetrievalService:
             spec=spec_for_index(index.embedding_model, index.config, index.embedding_dim),
         )
 
+    def embedder(self, plan: Plan) -> CachedEmbedder:
+        """The plan's embedding model, cached under the collection's project."""
+        return self.c.embedders.get(plan.spec, str(plan.collection.project_id))
+
     async def retrieve(
         self,
         plan: Plan,
@@ -129,7 +133,7 @@ class RetrievalService:
         keyword: list[tuple[uuid.UUID, float]] = []
         if settings.mode in ("vector", "hybrid"):
             step = time.perf_counter()
-            query_vector = await self.c.embedders.get(plan.spec).embed_query(query)
+            query_vector = await self.embedder(plan).embed_query(query)
             timings["embed"] = _ms(step)
             step = time.perf_counter()
             vector = await self.chunks.vector_candidates(
@@ -258,7 +262,8 @@ class RetrievalService:
             option=orjson.OPT_SORT_KEYS,
         )
         digest = hashlib.sha256(material).hexdigest()
-        return f"q:{plan.collection.id}:{plan.collection.corpus_version}:{digest}"
+        collection = plan.collection
+        return f"q:{collection.project_id}:{collection.id}:{collection.corpus_version}:{digest}"
 
     async def query(
         self, project: Project, collection: Collection, request: QueryRequest, principal: Principal
@@ -351,7 +356,7 @@ class RetrievalService:
             question,
             sources,
             model=settings.model,
-            embedder=self.c.embedders.get(plan.spec),
+            embedder=self.embedder(plan),
         )
         text, citations = extract_citations(draft.text, sources)
         elapsed = _ms(step)
