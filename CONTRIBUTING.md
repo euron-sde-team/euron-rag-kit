@@ -58,7 +58,7 @@ settings are fingerprinted: two versions with the same index settings share one 
 
 **Metrics are deterministic.** A new metric ships in `evaluation/metrics.py` with unit tests
 that pin its value on hand-computed examples, and is documented in
-[docs/guides/evaluation.md](docs/guides/evaluation.md).
+[the low-level design](docs/architecture/LLD.md#metrics).
 
 **Configuration is validated.** A new environment variable is declared in
 `apps/api/src/ragkit_server/core/config.py` and documented in
