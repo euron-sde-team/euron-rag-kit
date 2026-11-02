@@ -52,8 +52,9 @@ def create_user(
         str | None,
         typer.Option(
             envvar="RAGKIT_USER_PASSWORD",
-            help="Password. Without it the CLI prompts on a terminal, or reads one line from "
-            "standard input (for ECS tasks and CI).",
+            help="Password. Without it the CLI prompts on a terminal, reads one line from "
+            "standard input (CI), or, with neither (an ECS one-off task), generates a "
+            "temporary password and prints it once.",
         ),
     ] = None,
     admin: Annotated[bool, typer.Option(help="Instance administrator.")] = False,
@@ -62,7 +63,7 @@ def create_user(
     from ragkit_server.db.session import Database
     from ragkit_server.services.users import create_user as create
 
-    secret = password or read_password()
+    secret, generated = resolve_password(password)
 
     async def run() -> None:
         db = Database(get_settings())
@@ -76,17 +77,29 @@ def create_user(
             await db.dispose()
 
     asyncio.run(run())
+    if generated:
+        typer.echo(f"temporary password: {secret}")
+        typer.echo("Sign in and change it at once: account menu, Change password.")
 
 
-def read_password() -> str:
-    """Prompt on a terminal; read the first line of standard input otherwise."""
+def resolve_password(given: str | None) -> tuple[str, bool]:
+    """The password to set, and whether it was generated.
+
+    A given password wins. Otherwise prompt on a terminal, or take the first line of standard
+    input; with nobody to ask (an ECS one-off task has neither) generate a temporary one, so
+    the command still works there.
+    """
+    from ragkit_server.core.security import temporary_password
+
+    if given:
+        return given, False
     if sys.stdin.isatty():
         entered: str = typer.prompt("Password", hide_input=True, confirmation_prompt=True)
-        return entered
+        return entered, False
     line = sys.stdin.readline().rstrip("\n")
-    if not line:
-        raise typer.BadParameter("give --password, RAGKIT_USER_PASSWORD or a line on stdin")
-    return line
+    if line:
+        return line, False
+    return temporary_password(), True
 
 
 @demo_app.command("seed")

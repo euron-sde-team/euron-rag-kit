@@ -47,6 +47,18 @@ def validate_password(password: str, *, email: str | None = None) -> None:
         raise UnprocessableError("Your password cannot be your email address.")
 
 
+def temporary_password() -> str:
+    """A password for an account created with nobody at the keyboard (an ECS one-off task).
+
+    Fourteen characters from an alphabet without look-alikes (no 0/O, 1/l/I), split in two
+    for reading aloud. It passes `validate_password`, and the CLI prints it once so the
+    person can sign in and change it.
+    """
+    alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
+    body = "".join(secrets.choice(alphabet) for _ in range(14))
+    return f"{body[:7]}-{body[7:]}"
+
+
 def hash_password(password: str) -> str:
     return _hasher.hash(password)
 
