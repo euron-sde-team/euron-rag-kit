@@ -22,7 +22,7 @@ function CitationChip({ n, citation }: { n: number; citation: Citation | undefin
           {n}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 max-w-[90vw]">
+      <PopoverContent align="start" className="w-96 max-w-[90vw]">
         <p className="text-[13px] font-semibold">{citation.document_title}</p>
         <p className="text-subtle mb-2 text-xs">{citation.location || citation.external_id}</p>
         <blockquote className="border-primary text-muted-foreground border-l-2 pl-3 text-[13px] leading-relaxed">
