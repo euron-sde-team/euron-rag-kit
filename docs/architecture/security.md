@@ -18,6 +18,7 @@ on. The attacker's view, with each threat traced to these controls, is in the
 - [Logging and audit](#logging-and-audit)
 - [Abuse limits](#abuse-limits)
 - [Production guard rails](#production-guard-rails)
+- [Operator checklist](#operator-checklist)
 
 ## Principles
 
@@ -208,3 +209,33 @@ With `APP_ENV=production` the API and worker refuse to start (listing every prob
 SQS; `AWS_ENDPOINT_URL` is unset (no emulator); `URL_FETCH_ALLOW_PRIVATE` is false; and a
 model provider, when configured, names its model. The demo seeder refuses to run in
 production.
+
+## Operator checklist
+
+For whoever deploys and runs RAGKit. The first items are one-time, the rest are routines.
+
+- [ ] Deploy `aws-prod` from a reviewed commit. Keep `terraform.tfvars` out of Git and the
+      state in a private, versioned, encrypted bucket that only the people who deploy can
+      reach ([deploy-aws](../guides/deploy-aws.md#remote-state)).
+- [ ] Set `alarm_email` (or subscribe a pager to the alarm topic), confirm the subscription,
+      and read what each alarm means ([operations](../guides/operations.md#alarms)).
+- [ ] Create the first account right after the deploy, change its temporary password, and
+      leave `ALLOW_SIGNUP` false.
+- [ ] Keep `/metrics` internal: the load balancer answers 404 for it, and scrapers read the
+      tasks from inside the VPC.
+- [ ] Keep deletion protection and the WAF on in production, and rehearse a database restore
+      ([operations](../guides/operations.md#backups-and-recovery)).
+- [ ] Give applications `viewer` keys and CI `editor` keys with an expiry, and review members
+      and keys now and then: remove people who left and revoke keys nobody uses.
+- [ ] Rotate `SESSION_SECRET` and `API_KEY_PEPPER` on a schedule and after any suspected leak,
+      one at a time and never to the same value
+      ([operations](../guides/operations.md#keys-and-secrets)).
+- [ ] Keep a model provider key in Secrets Manager (`llm_api_key_secret_arn`), and choose a
+      provider that fits your data policy: questions and retrieved passages are sent to it.
+- [ ] Leave `URL_FETCH_ALLOW_PRIVATE` false (production refuses to start otherwise), and add
+      URL sources only from sites you trust: what they say is retrieved and shown to people.
+- [ ] Prune `query_logs` beyond the 90-day analytics window, or set `QUERY_LOG_TEXT=false` if
+      queries may contain personal data.
+- [ ] Rebuild and redeploy at least monthly for base image and dependency fixes, and run
+      `pip-audit` and `pnpm audit` (the full CI workflow does).
+- [ ] Before publishing a fork, run `make sanitize` and gitleaks.
