@@ -361,7 +361,7 @@ export function PipelineForm({
             value={k.strategy}
             onChange={(v) => setDraft(withStage(draft, "chunking", { strategy: v }))}
             options={[
-              { value: "recursive", label: "Recursive (headings, then paragraphs)" },
+              { value: "recursive", label: "Recursive (by structure)" },
               { value: "fixed", label: "Fixed token windows" },
               { value: "sentence_window", label: "Sentence windows" },
             ]}
