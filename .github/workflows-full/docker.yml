@@ -2,7 +2,8 @@ name: docker
 
 on:
   pull_request:
-    paths: ["apps/**", "samples/**", "infra/docker/**", "pnpm-lock.yaml", ".github/workflows/docker.yml"]
+    paths:
+      ["apps/**", "samples/**", "infra/docker/**", "pnpm-lock.yaml", ".github/workflows/docker.yml"]
   push:
     tags: ["v*"]
 
