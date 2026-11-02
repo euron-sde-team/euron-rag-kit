@@ -151,15 +151,7 @@ class IngestionService:
             for name, value in fetched.items():
                 setattr(document, name, value)
             title = normalize(parsed.title or "")
-            if (
-                title
-                and 3 <= len(title) <= 200
-                and document.title
-                in (
-                    snapshot.default_title,
-                    snapshot.source_uri,
-                )
-            ):
+            if title and 3 <= len(title) <= 200 and _title_is_derived(document, snapshot):
                 document.title = title
             document.kind = kind.value if kind else None
             document.status = JobStatus.READY
@@ -436,6 +428,24 @@ class _Snapshot:
             kind=DocumentKind(document.kind) if document.kind else None,
             default_title=document.title,
         )
+
+
+def _title_is_derived(document: Document, snapshot: _Snapshot) -> bool:
+    """Whether the title the content declares may replace the document's current one.
+
+    Only a title the system made up is replaced: a file's comes from its name and a URL's from
+    the address itself, so the page's own title is better. A title a person typed (a text
+    source, or a URL that was given one) stays, and so does one edited while the job ran.
+    """
+    if document.title != snapshot.default_title:
+        return False
+    if snapshot.source_type == SourceType.FILE:
+        return True
+    # Intake stores an untitled URL under the address itself (cut to the column width).
+    return (
+        snapshot.source_type == SourceType.URL
+        and document.title == (snapshot.source_uri or "")[:300]
+    )
 
 
 def _message(exc: Exception) -> str:

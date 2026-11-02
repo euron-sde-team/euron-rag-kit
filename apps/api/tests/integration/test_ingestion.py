@@ -167,6 +167,46 @@ async def test_text_sources_keep_their_external_ids(client: httpx.AsyncClient) -
     assert bad.json()["error"]["code"] == "invalid_metadata"
 
 
+async def test_a_title_someone_gave_survives_parsing_and_a_made_up_one_does_not(
+    client: httpx.AsyncClient, website: str
+) -> None:
+    """A heading inside a source must not rename a document a person titled. A file or an
+    address nobody titled takes the title its content declares."""
+    owner = await signup(client, "Titles")
+    await create_collection(client, owner, owner.project, "Notes", HASH_PIPELINE)
+    await import_sources(
+        client,
+        owner,
+        owner.project,
+        "notes",
+        [
+            {
+                "type": "text",
+                "title": "Payout holds FAQ",
+                "format": "markdown",
+                "text": "# Payout holds\n\nA payout is held for review when bank details change.",
+            },
+            {"type": "url", "url": f"{website}/notes.md", "title": "Tips and tricks"},
+            {"type": "url", "url": f"{website}/old"},
+        ],
+    )
+    await upload(
+        client,
+        owner,
+        owner.project,
+        "notes",
+        [("release-notes.md", b"# Release notes 2026\n\nThe sandbox resets every week.\n")],
+    )
+    await wait_indexed(client, owner, owner.project, "notes")
+    listing = await client.get(
+        f"/api/v1/projects/{owner.project}/collections/notes/documents",
+        params={"limit": 100},
+        headers=owner.headers,
+    )
+    titles = {d["title"] for d in listing.json()["items"]}
+    assert titles == {"Payout holds FAQ", "Tips and tricks", "Sandbox guide", "Release notes 2026"}
+
+
 async def test_url_sources_are_fetched_snapshotted_and_searchable(
     client: httpx.AsyncClient, website: str
 ) -> None:
