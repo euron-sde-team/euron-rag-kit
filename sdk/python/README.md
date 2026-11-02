@@ -40,7 +40,8 @@ docs = rk.collection("developer-docs")
 
 result = docs.query("How do I verify webhook signatures?", top_k=3, rerank="cross-encoder")
 for hit in result.hits:
-    print(hit.rank, hit.score, hit.document_title, hit.scores)   # scores: vector, keyword, fused, rerank
+    # hit.scores holds the vector, keyword, fused and rerank score of the hit
+    print(hit.rank, hit.score, hit.document_title, hit.scores)
 
 answer = docs.answer("What is the request rate limit in live mode?")
 print(answer.answer)
@@ -55,17 +56,22 @@ candidates: `docs.query("payout schedule", filters={"audience": "admins"})`.
 ## Add content and manage pipelines
 
 ```python
-docs.add_texts([{"title": "Refund policy", "text": "Refunds take 5 to 10 days.", "external_id": "refunds"}])
+refund = {"title": "Refund policy", "text": "Refunds take 5 to 10 days.", "external_id": "refunds"}
+docs.add_texts([refund])
 docs.add_files(["handbook.pdf", "faq.md"], metadata={"audience": "developers"})
 docs.add_urls(["https://example.com/docs/payouts"])
-docs.wait_until_indexed()                      # blocks until every document is parsed and indexed
+
+# Blocks until every document is parsed and indexed.
+docs.wait_until_indexed()
 
 v4 = docs.create_pipeline(
     "Smaller chunks",
     config={"chunking": {"strategy": "recursive", "chunk_tokens": 192, "overlap_tokens": 24}},
 )
 docs.wait_until_indexed(v4.version)
-docs.activate(v4.version)                      # queries use it by default from now on
+
+# Queries use this version by default from now on.
+docs.activate(v4.version)
 ```
 
 A version that only changes retrieval or answering reuses an existing index and is queryable
@@ -74,15 +80,23 @@ at once; `v4.index.shared_with` tells you which.
 ## Evaluate and gate
 
 ```python
-rk.evals.create_dataset("Support golden set", "developer-docs", load_jsonl("support-golden.jsonl"), slug="support-golden")
+rk.evals.create_dataset(
+    "Support golden set",
+    "developer-docs",
+    load_jsonl("support-golden.jsonl"),
+    slug="support-golden",
+)
 
+# The run that later runs are gated against.
 baseline = rk.evals.run("support-golden", pipeline_version=2, label="v2 baseline")
-rk.evals.set_baseline(baseline.id)                            # the run later runs are gated against
+rk.evals.set_baseline(baseline.id)
 
-run = rk.evals.run("support-golden", pipeline_version=4)      # waits for the worker
-print(run.means)                                              # hit_rate, mrr, ndcg, faithfulness, ...
+# Waits for the worker; the means are hit_rate, mrr, ndcg, faithfulness and the rest.
+run = rk.evals.run("support-golden", pipeline_version=4)
+print(run.means)
 
-comparison = rk.evals.compare([baseline.id, run.id])          # deltas, configuration diff, per-question changes
+# Deltas, the configuration diff and the questions that improved or regressed.
+comparison = rk.evals.compare([baseline.id, run.id])
 verdict = rk.evals.gate(run.id, min={"hit_rate": 0.85}, max_drop=0.03)
 print(verdict.passed, [check.message for check in verdict.checks])
 ```
