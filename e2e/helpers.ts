@@ -4,6 +4,7 @@ import path from "node:path";
 import { expect, type Page } from "@playwright/test";
 
 export const API_URL = process.env.API_URL ?? "http://localhost:8160";
+export const WEB_URL = process.env.WEB_URL ?? "http://localhost:3160";
 export const PASSWORD = process.env.DEMO_PASSWORD ?? "";
 export const PROJECT = "acme-payments";
 export const DOCS = "developer-docs";
