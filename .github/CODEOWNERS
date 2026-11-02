@@ -1,0 +1,15 @@
+# Code owners are requested for review on every pull request touching their paths.
+#
+# Uncomment and set a real GitHub team (or users) to enable. GitHub reports an
+# error for teams that do not exist, so the rules ship commented out.
+#
+# *                                                          @<org>/<maintainers-team>
+# /infra/                                                    @<org>/<maintainers-team>
+# /apps/api/src/ragkit_server/core/security.py               @<org>/<security-team>
+# /apps/api/src/ragkit_server/api/deps.py                    @<org>/<security-team>
+# /apps/api/src/ragkit_server/services/principal.py          @<org>/<security-team>
+# /apps/api/src/ragkit_server/services/api_keys.py           @<org>/<security-team>
+# /apps/api/src/ragkit_server/integrations/fetcher.py        @<org>/<security-team>
+# /apps/api/src/ragkit_server/ingestion/archive.py           @<org>/<security-team>
+# /apps/api/src/ragkit_server/retrieval/filters.py           @<org>/<security-team>
+# /infra/terraform/modules/deployment/                       @<org>/<security-team>

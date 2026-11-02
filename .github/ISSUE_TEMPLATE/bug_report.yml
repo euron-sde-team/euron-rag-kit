@@ -1,0 +1,62 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security issues: do not file here**, follow SECURITY.md instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: If retrieval or an evaluation is involved, include the pipeline version's configuration (GET .../pipelines/{n}) and the query or dataset item, with private content removed. A run id and the request id from the error help too.
+      placeholder: |
+        1. make up && make demo
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Ingestion (parsing, cleaning, chunking)
+        - Embeddings or indexing
+        - Retrieval, fusion or reranking
+        - Answers and citations
+        - Evaluation (datasets, runs, metrics, the gate)
+        - Dashboard
+        - SDK or CLI
+        - API
+        - Deployment
+        - Other
+  - type: dropdown
+    id: answerer
+    attributes:
+      label: Answer provider
+      options: [Extractive (built-in), OpenAI-compatible, Ollama, Not answer specific]
+  - type: dropdown
+    id: env
+    attributes:
+      label: Environment
+      options: [Local (Floci), Local against AWS, AWS (Terraform), Self-hosted (other), Other]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Redact keys, tokens, passwords, hostnames and private document text before pasting.
+      render: text
