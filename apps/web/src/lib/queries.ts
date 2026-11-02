@@ -97,6 +97,13 @@ export function useLogout() {
   });
 }
 
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (body: { current_password: string; new_password: string }) =>
+      api<{ user: User }>("/api/v1/auth/password", { method: "POST", json: body }),
+  });
+}
+
 // Projects --------------------------------------------------------------------------------
 
 export function useProject(project: string) {
