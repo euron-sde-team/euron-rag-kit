@@ -19,7 +19,7 @@ Node.js 22 with pnpm 9 (`corepack enable`).
 
 ```bash
 make up          # Postgres (pgvector), Valkey, the AWS emulator (provisioned by Terraform), api, worker, web
-make demo        # a demo project: corpus, two pipeline versions, datasets and evaluation runs
+make demo        # a demo project: corpus, three pipeline versions, datasets, evaluation runs and traffic
 make test        # unit tests for the API, the SDK (pytest) and the web app (Vitest)
 ```
 
