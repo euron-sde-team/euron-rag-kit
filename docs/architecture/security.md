@@ -39,7 +39,7 @@ on. The attacker's view, with each threat traced to these controls, is in the
 | Control | Implementation |
 | ------- | -------------- |
 | Password storage | Argon2id (`argon2-cffi` defaults), rehashed on sign-in when the parameters change |
-| Password policy | 10 to 256 characters; account creation by the CLI reads the password from a prompt or standard input, never from shell history |
+| Password policy | 10 to 256 characters; account creation by the CLI asks on a terminal or reads one line from standard input, never from shell history, and with neither (an ECS one-off task) generates a temporary password and prints it once; the account menu has **Change password**, which signs out every other session |
 | Sign-in throttling | 10 attempts per minute per client address (Valkey); after 8 consecutive failures an account is locked for 15 minutes |
 | Unknown accounts | the same error and the same Argon2 work as a wrong password, so sign-in does not reveal which emails exist |
 | Session token | HS256 JWT with `sub`, `jti`, `sv` (session version) and expiry (7 days by default), signed with `SESSION_SECRET` |

@@ -250,7 +250,7 @@ every response. Lists are paginated with `limit` and `offset`.
 
 | Area | Routes |
 | ---- | ------ |
-| Auth | `POST /auth/login`, `POST /auth/signup`, `POST /auth/logout`, `GET /auth/me` |
+| Auth | `POST /auth/login`, `POST /auth/signup`, `POST /auth/logout`, `GET, PATCH /auth/me`, `POST /auth/password` |
 | Projects | `GET, POST /projects`, `GET, PATCH, DELETE /projects/{p}`, members, API keys, activity |
 | Collections | `GET, POST /projects/{p}/collections`, `GET, PATCH, DELETE .../collections/{c}` |
 | Documents | `GET, POST .../collections/{c}/documents`, `POST .../documents/import`, `GET, PATCH, DELETE .../documents/{d}`, `POST .../documents/{d}/reprocess` |
