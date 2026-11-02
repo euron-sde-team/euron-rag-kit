@@ -114,7 +114,7 @@ function QueryForm({
     <Card>
       <CardContent className="space-y-4 pt-5">
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.75fr_1.35fr]">
             <div className="space-y-1.5">
               <Label htmlFor="pg-collection">Collection</Label>
               <NativeSelect
