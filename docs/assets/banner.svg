@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-labelledby="title desc">
+  <title id="title">Euron RAGKit</title>
+  <desc id="desc">Build, measure and serve retrieval pipelines: versioned configurations, a playground that shows every stage's score, evaluation runs compared across versions and a CI gate.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05171a"/>
+      <stop offset="0.55" stop-color="#082a2b"/>
+      <stop offset="1" stop-color="#0c3f3e"/>
+    </linearGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#99f6e4" fill-opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="320" fill="url(#bg)"/>
+  <rect width="1280" height="320" fill="url(#dots)"/>
+
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="72" y="112" fill="#5eead4" font-size="20" font-weight="600" letter-spacing="4">EURON</text>
+    <text x="70" y="172" fill="#f0fdfa" font-size="58" font-weight="700">RAGKit</text>
+    <text x="72" y="216" fill="#99f6e4" font-size="21">Build, measure and serve retrieval pipelines.</text>
+    <text x="72" y="246" fill="#99f6e4" font-size="21">Versioned configs, per-stage scores, evaluations, a CI gate.</text>
+    <text x="72" y="286" fill="#5eead4" fill-opacity="0.8" font-size="14" letter-spacing="1">OPEN SOURCE  /  MIT  /  SELF-HOSTED  /  RUNS OFFLINE</text>
+  </g>
+
+  <!-- The playground: one query, every stage's score for the top hit. -->
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <rect x="760" y="40" width="460" height="240" rx="14" fill="#0a1f1f" stroke="#2dd4bf" stroke-opacity="0.55"/>
+    <circle cx="782" cy="62" r="5" fill="#f87171"/>
+    <circle cx="798" cy="62" r="5" fill="#fbbf24"/>
+    <circle cx="814" cy="62" r="5" fill="#34d399"/>
+    <rect x="830" y="53" width="374" height="18" rx="9" fill="#10302f"/>
+    <text x="842" y="66" fill="#7fd8cc" font-size="11" font-family="'JetBrains Mono', Menlo, monospace">/p/acme-payments/playground</text>
+    <path d="M760 82 H1220" stroke="#134e4a" stroke-opacity="0.9"/>
+
+    <rect x="776" y="94" width="336" height="30" rx="8" fill="#0d2827" stroke="#2dd4bf" stroke-opacity="0.8"/>
+    <text x="790" y="113" fill="#e6fffb" font-size="12">how do I verify webhook signatures</text>
+    <rect x="1122" y="94" width="82" height="30" rx="8" fill="#2dd4bf"/>
+    <text x="1137" y="113" fill="#04201d" font-size="12" font-weight="700">Retrieve</text>
+
+    <!-- time per stage -->
+    <rect x="776" y="138" width="14" height="8" rx="4" fill="#94a3b8"/>
+    <rect x="792" y="138" width="22" height="8" fill="#2dd4bf"/>
+    <rect x="816" y="138" width="12" height="8" fill="#fbbf24"/>
+    <rect x="830" y="138" width="8" height="8" fill="#8b8bf5"/>
+    <rect x="840" y="138" width="364" height="8" rx="4" fill="#f472b6"/>
+    <text x="776" y="164" fill="#7aa8a3" font-size="10">embed 4 ms   vector 16 ms   keyword 5 ms   fusion 0 ms   rerank 1.1 s</text>
+
+    <!-- the top hit with its four scores -->
+    <rect x="776" y="176" width="428" height="92" rx="10" fill="#0d2827" stroke="#1f4a45"/>
+    <circle cx="796" cy="196" r="10" fill="#0f766e"/>
+    <text x="796" y="200" fill="#f0fdfa" font-size="11" font-weight="700" text-anchor="middle">1</text>
+    <text x="812" y="200" fill="#f0fdfa" font-size="12" font-weight="700">Webhooks</text>
+    <text x="878" y="200" fill="#7aa8a3" font-size="11">Verifying signatures</text>
+    <text x="1190" y="200" fill="#f0fdfa" font-size="12" font-weight="700" text-anchor="end">1.000</text>
+    <path d="M788 212 H1192" stroke="#1f4a45"/>
+
+    <g font-size="10">
+      <circle cx="793" cy="226" r="3" fill="#2dd4bf"/>
+      <text x="801" y="229" fill="#7aa8a3">Vector</text>
+      <text x="790" y="245" fill="#e6fffb" font-size="12" font-weight="600">0.881 <tspan fill="#7aa8a3" font-size="10" font-weight="500">#1</tspan></text>
+      <rect x="790" y="254" width="90" height="4" rx="2" fill="#2dd4bf"/>
+
+      <circle cx="895" cy="226" r="3" fill="#fbbf24"/>
+      <text x="903" y="229" fill="#7aa8a3">Keyword</text>
+      <text x="892" y="245" fill="#e6fffb" font-size="12" font-weight="600">0.444 <tspan fill="#7aa8a3" font-size="10" font-weight="500">#1</tspan></text>
+      <rect x="892" y="254" width="90" height="4" rx="2" fill="#fbbf24"/>
+
+      <circle cx="997" cy="226" r="3" fill="#8b8bf5"/>
+      <text x="1005" y="229" fill="#7aa8a3">Fused</text>
+      <text x="994" y="245" fill="#e6fffb" font-size="12" font-weight="600">0.0328 <tspan fill="#7aa8a3" font-size="10" font-weight="500">#1</tspan></text>
+      <rect x="994" y="254" width="90" height="4" rx="2" fill="#8b8bf5"/>
+
+      <circle cx="1099" cy="226" r="3" fill="#f472b6"/>
+      <text x="1107" y="229" fill="#7aa8a3">Rerank</text>
+      <text x="1096" y="245" fill="#e6fffb" font-size="12" font-weight="600">1.000 <tspan fill="#7aa8a3" font-size="10" font-weight="500">#1</tspan></text>
+      <rect x="1096" y="254" width="90" height="4" rx="2" fill="#f472b6"/>
+    </g>
+  </g>
+</svg>

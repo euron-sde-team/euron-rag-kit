@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="t d">
+  <title id="t">Euron RAGKit architecture</title>
+  <desc id="d">People and applications reach the web app and the API through one load balancer. The API answers queries from PostgreSQL with pgvector, caches in Valkey, stores originals in S3 and queues parse, index and evaluation job ids on SQS. Workers consume the queue, parse documents, build indexes with the bundled embedding model and run evaluations. A model provider is optional, and the URL loader only reaches public addresses.</desc>
+  <style>
+    .t { font-family: Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif; }
+    .h { font-size: 17px; font-weight: 650; fill: #ecfeff; }
+    .s { font-size: 13px; fill: #a9c9c4; }
+    .x { font-size: 12px; fill: #7aa39e; }
+    .lbl { font-size: 12px; font-weight: 600; fill: #5eead4; letter-spacing: 1.5px; }
+    .box { fill: #0f1f1e; stroke: #24433f; stroke-width: 1.2; }
+    .hot { fill: #0b2a28; stroke: #2dd4bf; stroke-opacity: 0.8; stroke-width: 1.4; }
+    .aws { fill: #111b1a; stroke: #2c4743; stroke-width: 1.2; }
+    .ext { fill: #161320; stroke: #4a3f63; stroke-width: 1.2; }
+    .zone { fill: none; stroke: #2c5550; stroke-dasharray: 5 6; stroke-width: 1.2; }
+    .arrow { stroke: #5b8a84; stroke-width: 1.6; fill: none; marker-end: url(#a); }
+    .arrowhot { stroke: #2dd4bf; stroke-width: 1.8; fill: none; marker-end: url(#ah); }
+    .dash { stroke: #5b8a84; stroke-width: 1.4; fill: none; stroke-dasharray: 5 5; marker-end: url(#a); }
+    .fence { fill: #2b1d0e; stroke: #f59e0b; stroke-opacity: 0.8; stroke-width: 1.2; }
+    .bus { stroke: #5b8a84; stroke-width: 1.6; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b8a84"/></marker>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2dd4bf"/></marker>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#fff" stroke-opacity="0.03"/></pattern>
+  </defs>
+  <rect width="1280" height="720" rx="16" fill="#071312"/>
+  <rect width="1280" height="720" rx="16" fill="url(#grid)"/>
+
+  <g class="t">
+    <text class="h" x="40" y="50" style="font-size: 21px">Euron RAGKit</text>
+    <text class="s" x="40" y="74">Build, measure, serve: ingest on a worker, hybrid retrieval in PostgreSQL, answers with citations, evaluations on a queue</text>
+
+    <!-- Clients -->
+    <text class="lbl" x="40" y="122">CLIENTS</text>
+    <rect class="box" x="40" y="136" width="190" height="84" rx="12"/>
+    <text class="h" x="58" y="168">People</text>
+    <text class="s" x="58" y="191">owners, editors, viewers</text>
+    <text class="x" x="58" y="209">app.&lt;domain&gt;</text>
+
+    <rect class="box" x="40" y="240" width="190" height="84" rx="12"/>
+    <text class="h" x="58" y="272">Applications and CI</text>
+    <text class="s" x="58" y="295">SDK, REST, project API keys</text>
+    <text class="x" x="58" y="313">api.&lt;domain&gt;</text>
+
+    <!-- Edge -->
+    <text class="lbl" x="262" y="122">EDGE</text>
+    <rect class="box" x="262" y="136" width="170" height="188" rx="12"/>
+    <text class="h" x="280" y="168">Load balancer</text>
+    <text class="s" x="280" y="192">TLS, routes by host</text>
+    <text class="s" x="280" y="212">WAF in production</text>
+    <text class="s" x="280" y="232">/metrics answers 404</text>
+    <text class="x" x="280" y="300">public subnets</text>
+
+    <!-- Application -->
+    <rect class="zone" x="460" y="100" width="330" height="560" rx="14"/>
+    <text class="lbl" x="476" y="122">PRIVATE SUBNETS, ECS FARGATE</text>
+
+    <rect class="box" x="476" y="136" width="298" height="70" rx="12"/>
+    <text class="h" x="494" y="166">web</text>
+    <text class="s" x="494" y="189">Next.js: pipelines, playground, evaluations</text>
+
+    <rect class="hot" x="476" y="222" width="298" height="140" rx="12"/>
+    <text class="h" x="494" y="252">api</text>
+    <text class="s" x="494" y="276">FastAPI: sessions, roles, API keys</text>
+    <text class="s" x="494" y="296">intake, pipeline versions, index reuse</text>
+    <text class="s" x="494" y="316">hybrid query, rerank, cited answers</text>
+    <text class="s" x="494" y="336">datasets, runs, comparisons, the gate</text>
+    <text class="x" x="494" y="354">embedding model and cross-encoder in the image</text>
+
+    <rect class="hot" x="476" y="400" width="298" height="168" rx="12"/>
+    <text class="h" x="494" y="430">worker</text>
+    <text class="s" x="494" y="454">parses each document once</text>
+    <text class="s" x="494" y="474">cleans, chunks and embeds per index</text>
+    <text class="s" x="494" y="494">scores evaluation runs question by question</text>
+    <text class="s" x="494" y="514">extends visibility, hands jobs back on stop</text>
+    <text class="x" x="494" y="538">elected worker: the stale-work reaper</text>
+    <text class="x" x="494" y="556">same image as the api, another command</text>
+
+    <rect class="fence" x="476" y="590" width="298" height="52" rx="10"/>
+    <text class="h" x="494" y="614" style="font-size: 15px; fill: #fde68a">URL loader guard</text>
+    <text class="x" x="494" y="632" style="fill: #fcd34d">public addresses only, redirects re-checked</text>
+
+    <!-- Data -->
+    <text class="lbl" x="822" y="122">DATA AND AWS SERVICES</text>
+    <rect class="aws" x="822" y="136" width="200" height="62" rx="12"/>
+    <text class="h" x="840" y="163">PostgreSQL 16</text>
+    <text class="x" x="840" y="183">pgvector HNSW, full text, runs</text>
+
+    <rect class="aws" x="822" y="210" width="200" height="62" rx="12"/>
+    <text class="h" x="840" y="237">Valkey</text>
+    <text class="x" x="840" y="257">embedding and result caches, limits</text>
+
+    <rect class="aws" x="822" y="284" width="200" height="62" rx="12"/>
+    <text class="h" x="840" y="311">KMS</text>
+    <text class="x" x="840" y="331">one key: S3, SQS, RDS, logs</text>
+
+    <rect class="aws" x="822" y="400" width="200" height="74" rx="12"/>
+    <text class="h" x="840" y="428">SQS jobs queue</text>
+    <text class="x" x="840" y="448">parse, index and eval ids,</text>
+    <text class="x" x="840" y="464">dead-letter queue after 3 receives</text>
+
+    <rect class="aws" x="822" y="494" width="200" height="74" rx="12"/>
+    <text class="h" x="840" y="522">S3 corpus</text>
+    <text class="x" x="840" y="542">originals and URL snapshots,</text>
+    <text class="x" x="840" y="558">SSE-KMS, versioned</text>
+
+    <!-- Outside -->
+    <text class="lbl" x="1062" y="122">OUTSIDE</text>
+    <rect class="ext" x="1062" y="400" width="178" height="96" rx="12"/>
+    <text class="h" x="1080" y="430">Public web</text>
+    <text class="s" x="1080" y="454">pages people add as</text>
+    <text class="x" x="1080" y="474">URL sources, through NAT;</text>
+    <text class="x" x="1080" y="489">snapshots go to S3</text>
+
+    <rect class="ext" x="1062" y="222" width="178" height="96" rx="12"/>
+    <text class="h" x="1080" y="252">Model provider</text>
+    <text class="s" x="1080" y="276">optional: answers, judging</text>
+    <text class="x" x="1080" y="296">OpenAI-compatible, Ollama;</text>
+    <text class="x" x="1080" y="311">extractive answers by default</text>
+  </g>
+
+  <!-- Clients to the edge, the edge to web and api -->
+  <path class="arrow" d="M230 178 H262"/>
+  <path class="arrow" d="M230 282 H262"/>
+  <path class="arrow" d="M432 171 H476"/>
+  <path class="arrowhot" d="M432 283 H476"/>
+
+  <!-- api and worker share the stores: one bus, a branch per store -->
+  <path class="bus" d="M774 283 H798"/>
+  <path class="bus" d="M774 500 H798"/>
+  <path class="bus" d="M798 167 V531"/>
+  <path class="arrow" d="M798 167 H822"/>
+  <path class="arrow" d="M798 241 H822"/>
+  <path class="arrow" d="M798 315 H822"/>
+  <path class="arrow" d="M798 425 H822"/>
+  <path class="arrow" d="M798 531 H822"/>
+  <!-- the queue hands job ids to the workers -->
+  <path class="arrowhot" d="M822 452 H774"/>
+
+  <!-- the answerer and the judge may ask a model (optional) -->
+  <path class="dash" d="M774 232 H786 V92 H1151 V222"/>
+
+  <!-- worker through the URL guard to the public web -->
+  <path class="arrowhot" d="M625 568 V590"/>
+  <path class="arrowhot" d="M774 616 H1151 V496"/>
+
+  <g class="t">
+    <text class="x" x="900" y="606">every redirect checked</text>
+    <text class="x" x="900" y="86">question and retrieved passages, as data</text>
+  </g>
+</svg>
