@@ -158,7 +158,7 @@ workbench around the parts.
 | **Evaluation** | 8 metrics (hit rate, context recall, context precision, MRR, nDCG, faithfulness, answer relevance, answer correctness), datasets as JSONL, runs compared side by side, baselines and a CI gate |
 | **Demo** | Acme Payments: 20 documents in 2 collections, 3 pipeline versions, 3 datasets, 7 evaluation runs and 14 days of query traffic, all produced by the real pipeline |
 | **Infrastructure** | 12 Terraform modules, 3 environments (local emulator, AWS dev, AWS prod) |
-| **Tests** | 166 API unit, 14 SDK and 47 web unit, 60 integration (real PostgreSQL, Valkey and emulated AWS), 27 browser end-to-end, plus a QA crawl of every page at two viewports |
+| **Tests** | 166 API unit, 14 SDK and 47 web unit, 61 integration (real PostgreSQL, Valkey and emulated AWS), 27 browser end-to-end, plus a QA crawl of every page at two viewports |
 | **License** | MIT |
 
 ## 🖼️ Screenshots
@@ -522,7 +522,7 @@ Report vulnerabilities privately: see [SECURITY.md](SECURITY.md).
 | --- | --- | --- |
 | API unit (166) | Parsers and sniffing, cleaning, the three chunkers, embeddings, fusion, metadata filters and their injection attempts, rerankers, the extractive answerer and citations, every metric on hand-computed cases, comparison and the gate, the URL guards, passwords, sessions and API keys, configuration guard rails | `make test` |
 | SDK (14) and web unit (47) | Request shapes, retries and exit codes; the dashboard's helpers for drafts, runs, metrics, citations and snippets | `make test` |
-| Integration (60) | The real API and worker against PostgreSQL with pgvector, Valkey and the AWS emulator: every format ingested, versions that share and build indexes, every retrieval stage and mode, cited answers, evaluation runs, comparisons and the gate, the worker over SQS including crashes and hand-backs, an isolation sweep, the SDK against a live server | `make test-integration` |
+| Integration (61) | The real API and worker against PostgreSQL with pgvector, Valkey and the AWS emulator: every format ingested, versions that share and build indexes, every retrieval stage and mode, cited answers, evaluation runs, comparisons and the gate, the worker over SQS including crashes and hand-backs, an isolation sweep, the SDK against a live server | `make test-integration` |
 | Browser (27) | Sign-in and roles, collections and documents, pipeline versions, the playground, cited answers and side-by-side comparison, evaluation runs scored by the worker, comparisons, analytics, API keys, a password change | `make e2e` |
 | QA crawl (4) | Every page at desktop and mobile widths: no console errors, failed requests, sideways scrolling, broken links or serious accessibility violations | `make qa` |
 | Infrastructure | `terraform validate` (3 environments), tflint, checkov | `make tf-validate tf-lint tf-security` |

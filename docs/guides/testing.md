@@ -8,7 +8,7 @@ suites run against the real stack seeded by `make demo`.
 | API unit | `make test` (with the SDK and web unit tests) | 166 | Nothing external: pure modules (chunkers, fusion, metrics, filters, parsers, security) and fakes for the ports |
 | SDK | `make test` | 14 | The SDK against a mocked HTTP transport, and the CLI through Typer's test runner |
 | Web unit | `make test` | 47 | The dashboard's pure logic (`apps/web/src/lib`), in Node |
-| API integration | `make test-integration` | 60 | Real PostgreSQL 16 with pgvector, Valkey 8 and Floci (S3, SQS, KMS), the bundled embedding model and reranker, and the SDK driving a live server |
+| API integration | `make test-integration` | 61 | Real PostgreSQL 16 with pgvector, Valkey 8 and Floci (S3, SQS, KMS), the bundled embedding model and reranker, and the SDK driving a live server |
 | End to end | `make e2e` | 27 | The running stack in Chromium |
 | QA crawl | `make qa` | 4 | Every page at desktop and mobile widths, with axe |
 | Screenshots | `make screenshots` | 3 | The README images and the tour GIF, from the seeded data |
@@ -64,7 +64,7 @@ the ASGI app) and drives everything the way a client does:
 | Retrieval: every stage reported, each mode running only its stages, weighted fusion, filters on both searches, document scoping, caching until the corpus changes, cited answers, an OpenAI-compatible model through the same endpoint, the bundled models, analytics | `test_retrieval.py` |
 | Evaluation: datasets refusing unknown documents, a run measuring every question, comparisons and the gate against a baseline, shared indexes, JSONL export and import, deleting runs | `test_evaluation.py` |
 | The worker over SQS: parse and index jobs, an unreadable file failing once, evaluation runs, malformed messages, the reaper (lost messages, backlogs, exhausted attempts), duplicate deliveries, handing jobs back on shutdown | `test_worker.py` |
-| Platform: probes, metrics and capabilities, request ids, the OpenAPI document, idempotent migrations, S3 round trips, rate limits counted in Valkey, serving without Valkey | `test_platform.py` |
+| Platform: probes, metrics and capabilities, request ids, the OpenAPI document, idempotent migrations, S3 round trips, rate limits counted in Valkey, serving without Valkey, the operator CLI creating the first account with nobody to ask | `test_platform.py` |
 | The Python SDK and its CLI against a live server: ingest, query, answer, evaluate, gate | `test_sdk.py` |
 
 ## Web and SDK unit tests
