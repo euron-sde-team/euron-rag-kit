@@ -150,6 +150,8 @@ test("collections, versions, the playground, evaluations, analytics and keys", a
   await page.goto(`${BASE}/settings`);
   await page.getByRole("tab", { name: "API keys" }).click();
   await expect(page.getByText("CI evaluation gate")).toBeVisible();
+  // The clicked tab keeps a keyboard focus ring: drop it, the picture is of the page.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await shot(page, "15-api-keys");
   await tourFrame(page, 1800);
 });
