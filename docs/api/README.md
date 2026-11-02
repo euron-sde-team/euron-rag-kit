@@ -114,16 +114,16 @@ The response lists the hits with what every stage thought of them:
       "document_title": "Webhooks",
       "external_id": "webhooks",
       "location": "Verifying signatures",
-      "heading": "Webhooks > Verifying signatures",
-      "text": "...",
-      "score": 7.41,
-      "scores": {"vector": 0.78, "keyword": 0.31, "fused": 0.0325, "rerank": 7.41},
-      "ranks": {"vector": 1, "keyword": 2, "fused": 1, "rerank": 1},
-      "metadata": {"section": "guides", "audience": "developers"}
+      "heading": "Verifying signatures",
+      "text": "Every webhook request carries an Acme-Signature header ...",
+      "score": 0.9999,
+      "scores": {"vector": 0.8806, "keyword": 0.4444, "fused": 0.0328, "rerank": 0.9999},
+      "ranks": {"vector": 1, "keyword": 1, "fused": 1, "rerank": 1},
+      "metadata": {"section": "guides", "updated": "2026-09-15", "audience": "developers"}
     }
   ],
-  "candidates": {"vector": 40, "keyword": 31, "fused": 40, "reranked": 20},
-  "timings_ms": {"embed": 8.1, "vector": 6.4, "keyword": 2.2, "fusion": 0.1, "rerank": 41.0, "total": 60.2},
+  "candidates": {"vector": 40, "keyword": 12, "fused": 40},
+  "timings_ms": {"embed": 4.2, "vector": 13.3, "keyword": 12.0, "fusion": 0.1, "rerank": 648.5, "total": 687.4},
   "cached": false
 }
 ```
@@ -211,20 +211,21 @@ line:
 ```
 
 ```bash
-# Create a dataset with its questions (or POST .../datasets/{slug}/items to add to one).
+# From the repository root: create a dataset with the sample questions (or POST
+# .../datasets/{slug}/items to add questions to an existing one).
 curl -sS -X POST "$API/datasets" -H "Authorization: Bearer $EDITOR_KEY" \
   -H "content-type: application/json" \
   -d "$(python3 - <<'PY'
 import json
 items = [json.loads(line) for line in open("samples/datasets/smoke.jsonl")]
-print(json.dumps({"name": "Smoke", "slug": "smoke", "collection": "developer-docs", "items": items}))
+print(json.dumps({"name": "Payments smoke", "slug": "payments-smoke", "collection": "developer-docs", "items": items}))
 PY
 )"
 
 # Start a run of the dataset against version 2; the answer is 201 with the queued run.
 RUN=$(curl -sS -X POST "$API/eval-runs" -H "Authorization: Bearer $EDITOR_KEY" \
   -H "content-type: application/json" \
-  -d '{"dataset": "smoke", "pipeline_version": 2, "label": "v2 nightly", "k": 5}' \
+  -d '{"dataset": "payments-smoke", "pipeline_version": 2, "label": "v2 nightly", "k": 5}' \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
 
 # Poll until status is completed or failed; metrics are the means over the questions.
@@ -239,9 +240,10 @@ curl -sS "$API/eval-runs/$RUN" -H "Authorization: Bearer $KEY"
 | `answers` | `false` measures retrieval only |
 | `grader` | `deterministic` (default) or `model` (needs a model provider) |
 
-A finished run has `metrics` with `hit_rate`, `context_recall`, `context_precision`, `mrr`,
-`ndcg`, `faithfulness`, `answer_relevance` and `answer_correctness` (the means, the number of
-questions behind each, latency percentiles and a breakdown per tag).
+A finished run's `metrics` object holds `means` (`hit_rate`, `context_recall`,
+`context_precision`, `mrr`, `ndcg`, `faithfulness`, `answer_relevance` and
+`answer_correctness`), `counts` (how many questions each mean is over), `questions`, `failed`,
+`latency_ms` (`p50`, `p95`, `mean`) and `by_tag`, the same means per tag.
 `GET .../eval-runs/{id}/results` lists every question with the retrieved chunks, the answer,
 its citations, its metrics and its grading. How each metric is computed is in the
 [LLD](../architecture/LLD.md#metrics).
@@ -251,25 +253,34 @@ metric deltas against the first run, the configuration differences and, for runs
 dataset, the questions that improved or regressed.
 
 **Gate**: `POST .../eval-runs/{id}/baseline` marks a run as its dataset's baseline, and
-`POST .../eval-runs/{id}/gate` checks a run against floors and the baseline:
+`POST .../eval-runs/{id}/gate` checks a run against floors and that baseline:
 
 ```bash
-curl -sS -X POST "$API/eval-runs/$RUN/gate" -H "Authorization: Bearer $KEY" \
+curl -sS -X POST "$API/eval-runs/$RUN/baseline" -H "Authorization: Bearer $EDITOR_KEY"   # once
+
+curl -sS -X POST "$API/eval-runs/$LATER_RUN/gate" -H "Authorization: Bearer $KEY" \
   -H "content-type: application/json" -d '{"min": {"hit_rate": 0.85}, "max_drop": 0.03}'
 ```
 
 ```json
 {
-  "passed": false,
+  "passed": true,
+  "run_id": "01a19c33-...",
   "run_status": "completed",
+  "baseline_run_id": "01a19c28-...",
   "checks": [
-    {"metric": "hit_rate", "kind": "min", "threshold": 0.85, "value": 0.972, "passed": true, "message": "..."},
-    {"metric": "mrr", "kind": "max_drop", "threshold": 0.03, "value": 0.91, "baseline": 0.968, "passed": false, "message": "..."}
+    {"metric": "hit_rate", "kind": "min", "threshold": 0.85, "value": 1.0, "baseline": null,
+     "passed": true, "message": "1.000 meets 0.850"},
+    {"metric": "mrr", "kind": "max_drop", "threshold": 0.03, "value": 0.968, "baseline": 0.968,
+     "passed": true, "message": "+0.000 against the baseline, within the allowed drop of 0.030"}
   ]
 }
 ```
 
-Thresholds left out of the body come from the dataset's own gate settings. In CI use
+A number for `max_drop` applies to every metric the run measured; an object picks metrics
+(`{"max_drop": {"mrr": 0.02}}`). A drop check on a dataset with no baseline run fails with
+"no baseline run", and so does a metric the run did not measure, so a gate cannot pass by
+accident. Thresholds left out of the body come from the dataset's own gate settings. In CI use
 `ragkit eval gate`, which starts the run, waits, calls this endpoint, writes a Markdown report
 and exits 0 (pass), 1 (regression) or 2 (the run could not be evaluated).
 
