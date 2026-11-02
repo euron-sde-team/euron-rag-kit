@@ -19,7 +19,7 @@ test.describe("evaluations", () => {
   }) => {
     await signIn(page, "owner");
     await page.goto(`/p/${PROJECT}/evaluations`);
-    await page.getByLabel("Dataset").selectOption("support-golden");
+    await page.getByRole("combobox", { name: "Dataset" }).selectOption("support-golden");
     await page.getByRole("checkbox", { name: /Select v1 fixed, vector/ }).check();
     await page
       .getByRole("checkbox", { name: /Select v2 recursive, hybrid \+ cross-encoder/ })
@@ -27,7 +27,7 @@ test.describe("evaluations", () => {
     await page.getByRole("button", { name: "Compare" }).click();
     await expect(page).toHaveURL(/\/evaluations\/compare\?runs=/);
     await expect(page.getByRole("heading", { name: "Compare runs" })).toBeVisible();
-    await expect(page.getByText("Configuration differences")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Configuration differences" })).toBeVisible();
     await expect(page.getByRole("cell", { name: "chunking.strategy" })).toBeVisible();
     await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
     await page.getByRole("button", { name: /improved/ }).click();

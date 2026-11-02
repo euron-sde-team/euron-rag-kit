@@ -17,13 +17,14 @@ test.describe("settings, members and API keys", () => {
     page,
     request,
   }) => {
+    const name = `e2e notebook ${Date.now().toString(36)}`;
     await signIn(page, "owner");
     await page.goto(`/p/${PROJECT}/settings`);
     await page.getByRole("tab", { name: "API keys" }).click();
     await expect(page.getByText("Docs assistant (production)")).toBeVisible();
     await page.getByRole("button", { name: "Create key" }).click();
     const dialog = page.getByRole("dialog", { name: "Create an API key" });
-    await dialog.getByLabel("Name").fill("e2e notebook");
+    await dialog.getByLabel("Name").fill(name);
     await dialog.getByRole("button", { name: "Create key" }).click();
     const shown = page.getByRole("dialog", { name: "Copy your key now" });
     const key = (await shown.getByLabel("API key").textContent())?.trim() ?? "";
@@ -41,9 +42,9 @@ test.describe("settings, members and API keys", () => {
     expect((await response.json()).hits.length).toBeGreaterThan(0);
 
     await shown.getByRole("button", { name: "Done" }).click();
-    const row = page.getByRole("listitem").filter({ hasText: "e2e notebook" });
+    const row = page.getByRole("listitem").filter({ hasText: name });
     await row.getByRole("button", { name: "Revoke" }).click();
-    await expect(row.getByText("Revoked")).toBeVisible();
+    await expect(row.getByText("Revoked", { exact: true })).toBeVisible();
     const after = await request.post(
       `${API_URL}/api/v1/projects/${PROJECT}/collections/${DOCS}/query`,
       {

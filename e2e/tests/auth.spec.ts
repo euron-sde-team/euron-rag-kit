@@ -23,7 +23,10 @@ test("a wrong password is refused with a clear message", async ({ page }) => {
   await page.getByLabel("Email").fill("nobody@acme-payments.example");
   await page.getByLabel("Password").fill(`${requirePassword()}-wrong`);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Email or password is incorrect.");
+  // Next.js keeps an empty role="alert" route announcer in every page: pick ours by its text.
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Email or password is incorrect." }),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });
 

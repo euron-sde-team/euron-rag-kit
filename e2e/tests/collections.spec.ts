@@ -46,7 +46,7 @@ test.describe("collections and documents", () => {
     await dialog.getByRole("tab", { name: "Text" }).click();
     await dialog.getByLabel("Title").fill("Payout holds FAQ");
     await dialog
-      .getByLabel("Text", { exact: true })
+      .getByRole("textbox", { name: "Text", exact: true })
       .fill(
         "# Payout holds\n\nA payout is held for review when the account changes its bank details.",
       );

@@ -35,13 +35,16 @@ test.describe("pipeline versions", () => {
   test("changing only the reranker reuses the index; new chunking builds one", async ({ page }) => {
     await signIn(page, "editor");
     await page.goto(`${BASE}/new?from=2`);
-    await expect(page.getByText("Reuses the index of v2.")).toBeVisible();
+    // The notice names the newest version that already uses the index: v2 on a fresh stack,
+    // a later reranker-only version once this test has run before.
+    const reuse = page.getByText(/Reuses the index of v\d+\./);
+    await expect(reuse).toBeVisible();
     await expect(page.getByText(/^Chunks$/).first()).toBeVisible();
 
     await page.getByLabel("Chunk tokens").fill("192");
     await expect(page.getByText("Builds a new index.")).toBeVisible();
     await page.getByLabel("Chunk tokens").fill("256");
-    await expect(page.getByText("Reuses the index of v2.")).toBeVisible();
+    await expect(reuse).toBeVisible();
 
     await page.getByLabel("Reranker").selectOption("lexical");
     await page.getByLabel("Name").fill("Lexical rerank experiment");
