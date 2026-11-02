@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Any
 
+import anyio
 import httpx
 import pytest
 from redis.asyncio import Redis
+from typer.testing import CliRunner
 
-from ragkit_server.core.config import Settings
+from ragkit_server.cli import app as cli
+from ragkit_server.core.config import Settings, get_settings
 from ragkit_server.core.errors import NotFoundError
 from ragkit_server.core.ratelimit import RateLimiter, RateLimitResult
 from ragkit_server.db.migrate import migrate
@@ -148,3 +152,29 @@ async def test_without_valkey_serving_continues_and_sign_in_refuses(
         assert login.json()["error"]["code"] == "service_unavailable"
     finally:
         container.limiter, container.redis = limiter, redis
+
+
+async def test_the_operator_cli_creates_an_account_when_nobody_can_be_asked(
+    client: httpx.AsyncClient, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An ECS one-off task has no terminal and an empty standard input: the first account on
+    a new deployment is created this way, and its temporary password must sign in."""
+    monkeypatch.setenv("DATABASE_URL", settings.database_url)
+    get_settings.cache_clear()
+    try:
+        # The CLI runs its own event loop, so it gets a thread of its own.
+        result = await anyio.to_thread.run_sync(
+            lambda: CliRunner().invoke(
+                cli, ["user", "create", "--email", "ops@example.com", "--name", "Ops", "--admin"]
+            )
+        )
+    finally:
+        get_settings.cache_clear()
+    assert result.exit_code == 0, result.output
+    found = re.search(r"temporary password: (\S+)", result.output)
+    assert found is not None, result.output
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "ops@example.com", "password": found.group(1)}
+    )
+    assert login.status_code == 200
+    assert login.json()["user"]["is_admin"] is True
